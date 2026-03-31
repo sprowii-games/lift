@@ -39,5 +39,5 @@ bool Player::is_in_area(float& x)
 }
 
 void Player::Draw() const {
-    DrawCircle(pos.x, pos.y, 10, GREEN);
+    DrawCircle(pos.x, pos.y, 30, GREEN);
 }

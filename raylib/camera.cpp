@@ -19,13 +19,8 @@ void Cam::Update(Player& pl, float cam_sp) {
     }
 
     // Calculate target offset based on last direction
-    float target_offset;
-    if (last_direction == 1) {
-        target_offset = (float)GetScreenWidth() / 100.0f * 16.66f;
-    }
-    else {
-        target_offset = (float)GetScreenWidth() / 100.0f * 83.33f;
-    }
+    float margin = (float)GetScreenWidth() / 100.0f * 83.33;
+    float target_offset = (last_direction == 1) ? ((float)GetScreenWidth() - margin) : margin;
 
     // Smoothly interpolate offset to target
     cam.offset.x += (target_offset - cam.offset.x) * cam_sp * dt;
@@ -37,6 +32,7 @@ void Cam::Init() {
     speed = 5.0f;
     last_direction = 1;
     cam.rotation = 0.0f;
-    cam.offset = { 0.0f, 0.0f };
+    float margin = (float)GetScreenWidth() / 100.0f * 83.33f;
+    cam.offset = { (float)GetScreenWidth() - margin, 0.0f };
     cam.target = { 0.0f, 0.0f };
 }
