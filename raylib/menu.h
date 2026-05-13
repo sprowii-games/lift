@@ -35,7 +35,7 @@ struct Menu {
     GameState state = MENU; // MENU, PLAYING, EXIT
 
     void Init() {
-        float x = 250.0f;
+        float x = 800.0f;
         float w = 300.0f;
         float h = 50.0f;
         
@@ -70,15 +70,15 @@ struct Menu {
 
     void Draw() {
         ClearBackground(WHITE);
-        DrawText("WELCOME TO THE GAME", 100, 24, 50, BLACK);
-        DrawText("LIFT", 350, 80, 50, BLACK);
+        DrawText("WELCOME TO THE GAME", 600, 24, 50, BLACK);
+        DrawText("LIFT", 850, 80, 50, BLACK);
 
         btnPlay.draw();
         btnQuit.draw();
         btnSecret.draw();
 
         if (showSecret) {
-            DrawText("ooo.mogaqu", 300, 520, 40, BLACK);
+            DrawText("ooo.mogaqu", 800, 520, 40, BLACK);
         }
     }
 };
