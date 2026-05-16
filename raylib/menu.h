@@ -1,84 +1,78 @@
 #pragma once
 #include <raylib.h>
-
-struct Button {
-    Rectangle rect;
-    const char* text;
-    Color bg = WHITE;
-    bool active = true;
-
-    bool draw() {
-        if (!active) return false;
-
-        bool hovered = CheckCollisionPointRec(GetMousePosition(), rect);
-        DrawRectangleRec(rect, bg);
-        DrawRectangleLinesEx(rect, 2, hovered ? BLUE : ORANGE);
-
-        int textW = MeasureText(text, 24);
-        int textX = (int)(rect.x + (rect.width - (float)textW) / 2.0f);
-        int textY = (int)(rect.y + (rect.height - 24.0f) / 2.0f);
-        DrawText(text, textX, textY, 24, BLACK);
-
-        return hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-    }
-};
+#include "assets.h"
 
 enum GameState { MENU, PLAYING, EXIT };
 
 struct Menu {
-    Button btnPlay;
-    Button btnQuit;
-    Button btnSecret;
-    
-    bool showSecret = false;
-    bool showQuitConfirm = false;
-    GameState state = MENU; // MENU, PLAYING, EXIT
+    GameState state = MENU;
+    bool continueSelected = false;
+    int hoveredBtn = -1;
 
     void Init() {
-        float x = 800.0f;
-        float w = 300.0f;
-        float h = 50.0f;
-        
-        btnPlay = { {x, 200.0f, w, h}, "PLAY", WHITE, true };
-        btnQuit = { {x, 270.0f, w, h}, "EXIT", WHITE, true };
-        btnSecret = { {x, 520.0f, w, h}, "DON'T CLICK", WHITE, true };
-        showSecret = false;
-        showQuitConfirm = false;
         state = MENU;
+        continueSelected = false;
+        hoveredBtn = -1;
     }
 
-    void Update() {
-        if (btnSecret.draw()) {
-            TraceLog(LOG_INFO, "Secret clicked!");
-            btnSecret.active = false;
-            showSecret = true;
-        }
+    void Update(Font font) {
+        (void)font;
+        int sw = GetScreenWidth();
+        int sh = GetScreenHeight();
+        float bw = 300.0f;
+        float bh = 50.0f;
+        float baseY = sh * 0.55f;
+        float gap = 65.0f;
 
-        if (btnPlay.draw()) {
-            TraceLog(LOG_INFO, "Play clicked!");
-            state = PLAYING;
-        }
+        Vector2 mouse = GetMousePosition();
+        hoveredBtn = -1;
 
-        if (btnQuit.draw()) {
-            showQuitConfirm = true;
-        }
+        Rectangle btnPlay = { (sw - bw) / 2.0f, baseY, bw, bh };
+        Rectangle btnQuit = { (sw - bw) / 2.0f, baseY + gap, bw, bh };
 
-        if (showQuitConfirm && btnQuit.draw()) {
-            state = EXIT;
+        if (CheckCollisionPointRec(mouse, btnPlay)) hoveredBtn = 0;
+        if (CheckCollisionPointRec(mouse, btnQuit)) hoveredBtn = 1;
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (hoveredBtn == 0) {
+                continueSelected = false;
+                state = PLAYING;
+            } else if (hoveredBtn == 1) {
+                state = EXIT;
+            }
         }
     }
 
-    void Draw() {
-        ClearBackground(WHITE);
-        DrawText("WELCOME TO THE GAME", 600, 24, 50, BLACK);
-        DrawText("LIFT", 850, 80, 50, BLACK);
+    void Draw(Font font) {
+        ClearBackground({ 8, 8, 14, 255 });
 
-        btnPlay.draw();
-        btnQuit.draw();
-        btnSecret.draw();
+        int sw = GetScreenWidth();
+        int sh = GetScreenHeight();
+        float bw = 300.0f;
+        float bh = 50.0f;
+        float baseY = sh * 0.55f;
+        float gap = 65.0f;
 
-        if (showSecret) {
-            DrawText("ooo.mogaqu", 800, 520, 40, BLACK);
+        int titleW = RuMeasure(font, u8"ЛИФТ", 72);
+        RuText(font, u8"ЛИФТ", (sw - titleW) / 2, 120, 72, RAYWHITE);
+
+        int subW = RuMeasure(font, u8"Психологический хоррор в лифте", 24);
+        RuText(font, u8"Психологический хоррор в лифте", (sw - subW) / 2, 200, 24, GRAY);
+
+        const char* labels[] = { u8"ИГРАТЬ", u8"ВЫХОД" };
+        float ys[] = { baseY, baseY + gap };
+
+        for (int i = 0; i < 2; i++) {
+            Rectangle rec = { (sw - bw) / 2.0f, ys[i], bw, bh };
+            Color bg = (hoveredBtn == i) ? Color{ 50, 50, 60, 255 } : Color{ 30, 30, 38, 255 };
+            Color border = (hoveredBtn == i) ? RAYWHITE : Color{ 100, 100, 110, 255 };
+            DrawRectangleRec(rec, bg);
+            DrawRectangleLinesEx(rec, 2, border);
+            int tw = RuMeasure(font, labels[i], 28);
+            RuText(font, labels[i], (int)(rec.x + (bw - tw) / 2.0f), (int)(rec.y + 12), 28, RAYWHITE);
         }
+
+        int hintW = RuMeasure(font, u8"Управление: мышь / клавиатура", 18);
+        RuText(font, u8"Управление: мышь / клавиатура", (sw - hintW) / 2, sh - 50, 18, Color{ 80, 80, 90, 255 });
     }
 };

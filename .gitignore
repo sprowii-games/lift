@@ -3,7 +3,12 @@
 ################################################################################
 
 /.vs/raylib
-/x64/Debug
-/packages/raylib.5.5.0
-/raylib/x64/Debug/raylib.tlog
-/raylib/x64/Debug
+/x64
+/packages
+/raylib/x64
+/raylib/x86
+/Debug
+/Release
+*.user
+.vs
+dizdok.md dizdoc.md
