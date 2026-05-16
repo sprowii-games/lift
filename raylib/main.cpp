@@ -140,9 +140,17 @@ int main() {
                 }
                 EndMode2D();
 
-                DrawFPS(10, 10);
-                RuText(assets.font, TextFormat("ЭТАЖ %d / %d", currentLevel + 1, levelCount), 10, 40, 20, DARKGRAY);
-                RuText(assets.font, u8"A/D — ходить | SHIFT — бег | E — действие | R — рестарт", 10, height - 30, 16, DARKGRAY);
+                DrawRectangle(12, 12, 180, 62, Color{ 0, 0, 0, 120 });
+                DrawRectangleLines(12, 12, 180, 62, Color{ 230, 230, 230, 80 });
+                DrawFPS(22, 18);
+                RuText(assets.font, TextFormat("ЭТАЖ %d / %d", currentLevel + 1, levelCount), 22, 48, 20, RAYWHITE);
+
+                const char* controls = u8"A/D — ходить | SHIFT — бег | E — действие | R — рестарт";
+                int controlsW = RuMeasure(assets.font, controls, 16);
+                int controlsX = (width - controlsW) / 2;
+                int controlsY = height - 44;
+                DrawRectangle(controlsX - 16, controlsY - 6, controlsW + 32, 30, Color{ 0, 0, 0, 120 });
+                RuText(assets.font, controls, controlsX, controlsY, 16, RAYWHITE);
                 EndDrawing();
             }
             else {
@@ -150,16 +158,23 @@ int main() {
                 ClearBackground(BLACK);
 
                 if (gameBadEnd) {
-                    RuText(assets.font, "ТЫ УЛЕТЕЛ...", width / 2 - 180, height / 2 - 60, 40, GOLD);
-                    RuText(assets.font, "Но был ли вертолёт на самом деле?", width / 2 - 260, height / 2, 26, RAYWHITE);
-                    RuText(assets.font, "Ветер кажется реальным. Падение кажется реальным.", width / 2 - 290, height / 2 + 40, 22, GRAY);
-                    RuText(assets.font, "Но не земля.", width / 2 - 90, height / 2 + 72, 22, GRAY);
+                    const char* t1 = "ТЫ УЛЕТЕЛ...";
+                    const char* t2 = "Но был ли вертолёт на самом деле?";
+                    const char* t3 = "Ветер кажется реальным. Падение кажется реальным.";
+                    const char* t4 = "Но не земля.";
+                    RuText(assets.font, t1, (width - RuMeasure(assets.font, t1, 40)) / 2, height / 2 - 90, 40, GOLD);
+                    RuText(assets.font, t2, (width - RuMeasure(assets.font, t2, 26)) / 2, height / 2 - 24, 26, RAYWHITE);
+                    RuText(assets.font, t3, (width - RuMeasure(assets.font, t3, 22)) / 2, height / 2 + 18, 22, GRAY);
+                    RuText(assets.font, t4, (width - RuMeasure(assets.font, t4, 22)) / 2, height / 2 + 52, 22, GRAY);
                 }
                 else {
-                    RuText(assets.font, "ИГРА ПРОЙДЕНА", width / 2 - 220, height / 2, 40, GOLD);
-                    RuText(assets.font, "Ты принял правду. И это нормально.", width / 2 - 220, height / 2 + 50, 22, RAYWHITE);
+                    const char* win1 = "ИГРА ПРОЙДЕНА";
+                    const char* win2 = "Ты принял правду. И это нормально.";
+                    RuText(assets.font, win1, (width - RuMeasure(assets.font, win1, 40)) / 2, height / 2 - 28, 40, GOLD);
+                    RuText(assets.font, win2, (width - RuMeasure(assets.font, win2, 22)) / 2, height / 2 + 32, 22, RAYWHITE);
                 }
-                RuText(assets.font, "Нажмите ESC для выхода.", width / 2 - 120, height / 2 + 130, 18, DARKGRAY);
+                const char* esc = "Нажмите ESC для выхода.";
+                RuText(assets.font, esc, (width - RuMeasure(assets.font, esc, 18)) / 2, height / 2 + 126, 18, DARKGRAY);
                 EndDrawing();
             }
         }

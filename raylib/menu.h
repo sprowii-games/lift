@@ -19,10 +19,14 @@ struct Menu {
         (void)font;
         int sw = GetScreenWidth();
         int sh = GetScreenHeight();
-        float bw = 300.0f;
-        float bh = 50.0f;
-        float baseY = sh * 0.55f;
-        float gap = 65.0f;
+        float bw = sw * 0.24f;
+        if (bw < 280.0f) bw = 280.0f;
+        if (bw > 420.0f) bw = 420.0f;
+        float bh = 56.0f;
+        float gap = 72.0f;
+        float totalButtonsH = bh * 2.0f + gap;
+        float baseY = sh * 0.60f - totalButtonsH * 0.5f;
+        if (baseY < sh * 0.48f) baseY = sh * 0.48f;
 
         Vector2 mouse = GetMousePosition();
         hoveredBtn = -1;
@@ -48,16 +52,20 @@ struct Menu {
 
         int sw = GetScreenWidth();
         int sh = GetScreenHeight();
-        float bw = 300.0f;
-        float bh = 50.0f;
-        float baseY = sh * 0.55f;
-        float gap = 65.0f;
+        float bw = sw * 0.24f;
+        if (bw < 280.0f) bw = 280.0f;
+        if (bw > 420.0f) bw = 420.0f;
+        float bh = 56.0f;
+        float gap = 72.0f;
+        float totalButtonsH = bh * 2.0f + gap;
+        float baseY = sh * 0.60f - totalButtonsH * 0.5f;
+        if (baseY < sh * 0.48f) baseY = sh * 0.48f;
 
         int titleW = RuMeasure(font, u8"ЛИФТ", 72);
-        RuText(font, u8"ЛИФТ", (sw - titleW) / 2, 120, 72, RAYWHITE);
+        RuText(font, u8"ЛИФТ", (sw - titleW) / 2, (int)(sh * 0.14f), 72, RAYWHITE);
 
         int subW = RuMeasure(font, u8"Психологический хоррор в лифте", 24);
-        RuText(font, u8"Психологический хоррор в лифте", (sw - subW) / 2, 200, 24, GRAY);
+        RuText(font, u8"Психологический хоррор в лифте", (sw - subW) / 2, (int)(sh * 0.23f), 24, GRAY);
 
         const char* labels[] = { u8"ИГРАТЬ", u8"ВЫХОД" };
         float ys[] = { baseY, baseY + gap };
@@ -69,10 +77,10 @@ struct Menu {
             DrawRectangleRec(rec, bg);
             DrawRectangleLinesEx(rec, 2, border);
             int tw = RuMeasure(font, labels[i], 28);
-            RuText(font, labels[i], (int)(rec.x + (bw - tw) / 2.0f), (int)(rec.y + 12), 28, RAYWHITE);
+            RuText(font, labels[i], (int)(rec.x + (bw - tw) / 2.0f), (int)(rec.y + (bh - 28.0f) * 0.5f), 28, RAYWHITE);
         }
 
         int hintW = RuMeasure(font, u8"Управление: мышь / клавиатура", 18);
-        RuText(font, u8"Управление: мышь / клавиатура", (sw - hintW) / 2, sh - 50, 18, Color{ 80, 80, 90, 255 });
+        RuText(font, u8"Управление: мышь / клавиатура", (sw - hintW) / 2, sh - 64, 18, Color{ 80, 80, 90, 255 });
     }
 };
