@@ -2,6 +2,7 @@
 #include "level.h"
 #include "../utils.h"
 #include <cmath>
+#include <cstdio>
 
 // ============================================================
 //  ЭТАЖ 1 — «Приветствие»
