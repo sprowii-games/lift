@@ -31,6 +31,7 @@ enum TransitState { TRANSIT_NONE, TRANSIT_FADE_OUT, TRANSIT_SHAKE, TRANSIT_FADE_
 int main() {
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
     InitWindow(1920, 1080, "LIFT");
+    SetExitKey(0);               // отключаем авто-закрытие по ESC — обрабатываем вручную
     SetTargetFPS(60);
 
     InitAudioDevice();
@@ -78,7 +79,7 @@ int main() {
 
     while (!WindowShouldClose()) {
         int desiredTrack = -1;
-        if (menu.state == MENU) desiredTrack = 0;
+        if (menu.state == MENU || menu.state == CREDITS) desiredTrack = 0;
         else if (gameCompleted) desiredTrack = -1;
         else if (transitState == TRANSIT_NONE) {
             if (currentLevel == 0) desiredTrack = 1;
@@ -115,6 +116,7 @@ int main() {
 
         if (menu.state == MENU) {
             menu.Update(assets.font);
+            if (IsKeyPressed(KEY_ESCAPE)) menu.state = EXIT;
 
             BeginDrawing();
             menu.Draw(assets.font);
@@ -259,8 +261,38 @@ int main() {
                     RuText(assets.font, "И этого достаточно.", width / 2 - 120, height / 2 + 55, 22, GRAY);
                 }
                 RuText(assets.font, "ESC — выйти.", width / 2 - 60, height / 2 + 130, 18, DARKGRAY);
+
+                if (IsKeyPressed(KEY_ESCAPE)) break;
+
                 EndDrawing();
             }
+        }
+        else if (menu.state == CREDITS) {
+            if (IsKeyPressed(KEY_ESCAPE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                menu.state = MENU;
+            }
+
+            BeginDrawing();
+            ClearBackground(Color{8, 8, 14, 255});
+
+            int sw = GetScreenWidth();
+            int sh = GetScreenHeight();
+
+            int tw;
+            tw = RuMeasure(assets.font, u8"КРЕДИТЫ", 48);
+            RuText(assets.font, u8"КРЕДИТЫ", (sw - tw) / 2, 150, 48, RAYWHITE);
+
+            tw = RuMeasure(assets.font, u8"Музыка", 32);
+            RuText(assets.font, u8"Музыка", (sw - tw) / 2, 280, 32, GOLD);
+            tw = RuMeasure(assets.font, "chajamakesmusic", 28);
+            RuText(assets.font, "chajamakesmusic", (sw - tw) / 2, 340, 28, RAYWHITE);
+            tw = RuMeasure(assets.font, "crow shade", 28);
+            RuText(assets.font, "crow shade", (sw - tw) / 2, 390, 28, RAYWHITE);
+
+            tw = RuMeasure(assets.font, u8"ESC / клик — назад", 20);
+            RuText(assets.font, u8"ESC / клик — назад", (sw - tw) / 2, sh - 80, 20, Color{100, 100, 110, 255});
+
+            EndDrawing();
         }
         else if (menu.state == EXIT) {
             break;
