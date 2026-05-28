@@ -7,6 +7,7 @@ struct Cam {
     float speed;
     short last_direction = 1;
     float shake = 0.0f;
+    float defaultZoom = 1.5f;   // зум камеры (>1 = ближе/меньше обзор, <1 = дальше/больше обзор)
 
     void Init();
     void SnapTo(Vector2 pos);

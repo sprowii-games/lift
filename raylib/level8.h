@@ -101,12 +101,19 @@ struct Level8 {
         DrawRectangle(0, scrH * 0.50f, scrW, 4, GRAY);
         DrawGlow({ scrW * 0.20f, scrH * 0.50f }, 50.0f, { 255, 60, 60, 120 }, { 255, 60, 60, 0 }, 6);
 
-        // --- здание ниже парапета ---
-        DrawRectangle(0, scrH * 0.56f, scrW, scrH * 0.44f, { 40, 40, 50, 255 });
+        // --- здание ниже парапета (текстура пола) ---
+        float floorY = scrH * 0.56f;
+        if (assets.tex_floor.width > 0) {
+            int tileCount = scrW / assets.tex_floor.width + 2;
+            for (int i = 0; i < tileCount; i++) {
+                DrawTexture(assets.tex_floor, i * assets.tex_floor.width, (int)floorY, WHITE);
+            }
+            DrawRectangle(0, (int)(floorY + assets.tex_floor.height), scrW, scrH - (int)(floorY + assets.tex_floor.height), Color{18, 18, 22, 255});
+        }
 
         // --- заголовок ---
-        RuText(assets.font, u8"КРЫША — ЭТАЖ 5", scrW / 2 - 130, 30, 28, LIGHTGRAY);
-        RuText(assets.font, u8"Лифт дальше не едет.", scrW / 2 - 110, 65, 18, GRAY);
+        RuText(assets.font, u8"КРЫША — 66-й ЭТАЖ", scrW / 2 - 150, 30, 28, LIGHTGRAY);
+        RuText(assets.font, u8"Дальше лифт не идёт.", scrW / 2 - 100, 65, 18, GRAY);
 
         // --- выбор, пока не выбран ---
         if (!choiceMade) {
@@ -161,9 +168,7 @@ struct Level8 {
         }
 
         // --- записка на полу ---
-        DrawRectangle(notePosX, scrH * 0.70f, 36, 28, BROWN);
-        DrawRectangleLines(notePosX, scrH * 0.70f, 36, 28, DARKBROWN);
-        RuText(assets.font, u8"последняя записка", notePosX - 14, scrH * 0.67f, 13, BEIGE);
+        DrawTexture(assets.tex_note, (int)notePosX, (int)(scrH * 0.70f), WHITE);
 
         // --- текст записки ---
         if (noteActive && !choiceMade) {
@@ -173,18 +178,16 @@ struct Level8 {
             DrawRectangleLines(nx, ny, 840, 560, GOLD);
 
             RuText(assets.font, u8"--- ЗАКЛЮЧИТЕЛЬНЫЙ ОТЧЁТ ---", nx + 30, ny + 25, 26, GOLD);
-            RuText(assets.font, u8"Объект №12 вырвался из изоляции.", nx + 30, ny + 70, 22, RAYWHITE);
-            RuText(assets.font, u8"В последний раз видели в лабораторном халате,", nx + 50, ny + 105, 22, RAYWHITE);
-            RuText(assets.font, u8"взятом из шкафчика B-7.", nx + 50, ny + 135, 22, RAYWHITE);
-            RuText(assets.font, u8"Доза Z-радиации: 4,7 Гр — КРИТИЧЕСКАЯ.", nx + 30, ny + 175, 22, RED);
-            RuText(assets.font, u8"Прогноз: полный крах личности", nx + 50, ny + 210, 22, RED);
-            RuText(assets.font, u8"в течение 72 часов. Объект утратит", nx + 50, ny + 240, 22, RED);
-            RuText(assets.font, u8"всё чувство себя, приняв личность", nx + 50, ny + 270, 22, RED);
-            RuText(assets.font, u8"того, чью одежду он надел.", nx + 50, ny + 300, 22, RED);
-            RuText(assets.font, u8"Объект — НЕ учёный.", nx + 30, ny + 350, 26, RAYWHITE);
-            RuText(assets.font, u8"Он — НЕЗВАНЫЙ ГОСТЬ, который заблудился.", nx + 50, ny + 385, 26, RAYWHITE);
-            RuText(assets.font, u8"При обнаружении НЕ ПРИБЛИЖАТЬСЯ. Он", nx + 30, ny + 435, 20, RAYWHITE);
-            RuText(assets.font, u8"вооружён ГАЛЛЮЦИНАЦИЯМИ и лабораторным халатом.", nx + 50, ny + 465, 20, RAYWHITE);
+            RuText(assets.font, u8"Объект №12. Вырвался из изолятора в 03:17.", nx + 30, ny + 70, 22, RAYWHITE);
+            RuText(assets.font, u8"Приметы: лабораторный халат из ячейки B-7.", nx + 50, ny + 105, 22, RAYWHITE);
+            RuText(assets.font, u8"Доза Z-облучения: 4,7 Гр — КРИТИЧЕСКАЯ.", nx + 30, ny + 150, 22, RED);
+            RuText(assets.font, u8"Прогноз: полный распад самоидентификации", nx + 50, ny + 185, 22, RED);
+            RuText(assets.font, u8"в течение 72 часов. Объект присвоит личность", nx + 50, ny + 215, 22, RED);
+            RuText(assets.font, u8"владельца любой вещи, которую наденет.", nx + 50, ny + 245, 22, RED);
+            RuText(assets.font, u8"Объект — НЕ СОТРУДНИК КОМПЛЕКСА.", nx + 30, ny + 300, 26, RAYWHITE);
+            RuText(assets.font, u8"Посторонний. Проник самовольно. Заблудился.", nx + 50, ny + 335, 26, RAYWHITE);
+            RuText(assets.font, u8"При обнаружении: НЕ ВСТУПАТЬ В КОНТАКТ.", nx + 30, ny + 390, 22, RAYWHITE);
+            RuText(assets.font, u8"Опасен. Не осознаёт своих действий.", nx + 50, ny + 420, 22, RAYWHITE);
         }
 
         // --- плохая концовка: белый fade ---
@@ -204,10 +207,10 @@ struct Level8 {
                           Fade(BLACK, 0.85f));
             DrawRectangleLines(scrW / 2 - 280, scrH / 2 - 60, 560, 120, GOLD);
             RuText(assets.font, u8"Ты выбрал РЮКЗАК.", scrW / 2 - 130, scrH / 2 - 40, 26, GREEN);
-            RuText(assets.font, u8"Ты не учёный. Ты им никогда не был.", scrW / 2 - 200, scrH / 2 + 5, 20, RAYWHITE);
-            RuText(assets.font, u8"Но, возможно... это нормально.", scrW / 2 - 150, scrH / 2 + 35, 20, RAYWHITE);
+            RuText(assets.font, u8"Ты не учёный. И никогда им не был.", scrW / 2 - 200, scrH / 2 + 5, 20, RAYWHITE);
+            RuText(assets.font, u8"Но ты всё ещё человек. Пошли отсюда.", scrW / 2 - 180, scrH / 2 + 35, 20, RAYWHITE);
         }
 
-        player.Draw();
+        player.DrawSprite(assets);
     }
 };

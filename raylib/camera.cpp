@@ -3,7 +3,7 @@
 
 void Cam::Init() {
     cam = {};
-    cam.zoom = 1.0f;
+    cam.zoom = defaultZoom;
     cam.rotation = 0.0f;
     speed = 5.0f;
     last_direction = 1;
@@ -24,10 +24,11 @@ void Cam::AddShake(float amount) {
 void Cam::Update(Player& pl, float cam_sp) {
     float dt = GetFrameTime();
 
+    float runZoom = defaultZoom * 0.85f;   // при беге чуть отдаляем
     if (pl.is_running) {
-        cam.zoom += (0.9f - cam.zoom) * cam_sp * dt;
+        cam.zoom += (runZoom - cam.zoom) * cam_sp * dt;
     } else {
-        cam.zoom += (1.0f - cam.zoom) * cam_sp * dt;
+        cam.zoom += (defaultZoom - cam.zoom) * cam_sp * dt;
     }
 
     cam.target.x += (pl.pos.x - cam.target.x) * cam_sp * dt;

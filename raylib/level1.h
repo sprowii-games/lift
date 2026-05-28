@@ -2,11 +2,12 @@
 #include "level.h"
 #include "../utils.h"
 #include <cmath>
+#include <cstdio>
 
 // ============================================================
 //  ЭТАЖ 1 — «Приветствие»
 //  Терминал советской системы А.У.Р.А.
-//  Товарищ Коротков проспал 43 821 час и должен пройти тест
+//  Товарищ Ноунеймов проспал 43 821 час и должен пройти тест
 //  по электробезопасности (закон Ома, параллельные резисторы)
 // ============================================================
 
@@ -25,6 +26,8 @@ struct Level1 {
     State state;
     float stateTimer;
 
+    float terminalScale = 1.5f;   // размер терминала в мире (меньше = меньше терминал)
+
     // Интро — построчное появление текста АУРА
     int introLineShown;      // сколько строк уже видно (0..4)
 
@@ -42,6 +45,7 @@ struct Level1 {
     int failMessageIndex;
 
     void Init(int screenW, int screenH) {
+        
         completed = false;
         badEnding = false;
         state = WAITING;
@@ -50,6 +54,7 @@ struct Level1 {
         currentQuestion = 0;
         selectedOption = 0;
         failMessageIndex = 0;
+        terminalScale = 1.5f;
 
         doorPos = { screenW * 0.88f, screenH * 0.5f };
         terminalPos = { screenW * 0.08f, screenH * 0.10f };
@@ -83,17 +88,18 @@ struct Level1 {
         correctOption[2] = 2;
 
         // --- Саркастические сообщения при ошибке ---
-        failMessages[0] = u8"СИСТЕМА: Ошибка. Товарищ Коротков, ваше незнание закона Ома позорит весь институт.";
-        failMessages[1] = u8"СИСТЕМА: Ошибка. Даже стажёр справился бы лучше.";
-        failMessages[2] = u8"СИСТЕМА: Ошибка. Вы уверены, что вы физик?";
+        failMessages[0] = u8"СИСТЕМА: Неверно. Рекомендую вернуться в школу. В младшие классы.";
+        failMessages[1] = u8"СИСТЕМА: Неверно. Ваш допуск понижен до уровня «уборщик». Навсегда.";
+        failMessages[2] = u8"СИСТЕМА: Неверно. Мне вас жаль. Так жаль, что я бы заплакала, если б умела.";
     }
 
-    void Update(Player& player) {
+    void Update(Player& player,Cam& camera) {
         float dt = GetFrameTime();
 
         // --- WAITING: ждём, пока игрок подойдёт к терминалу ---
         if (state == WAITING) {
             if (player.is_in_area(terminalCenterX) && IsKeyPressed(KEY_E)) {
+                
                 state = INTRO;
                 stateTimer = 1.5f;
                 introLineShown = 0;
@@ -103,8 +109,13 @@ struct Level1 {
 
         // Во время работы с терминалом «примораживаем» игрока
         if (state == INTRO || state == QUIZ || state == FAIL) {
+            if (IsKeyPressed(KEY_ESCAPE)) {
+                state = WAITING;
+                return;
+            }
             player.pos.x = terminalCenterX;
             player.direction = 0;
+            camera.last_direction = 0;
         }
 
         // --- INTRO: построчное появление текста АУРА ---
@@ -181,69 +192,109 @@ struct Level1 {
         }
     }
 
-    void Draw(Player& player, Assets& assets) {
+    // === Рисование мира (внутри BeginMode2D/EndMode2D) ===
+    void DrawWorld(Player& player, Assets& assets) {
         int scrW = GetScreenWidth();
         int scrH = GetScreenHeight();
 
-        // Тёмный фон — заброшенная комната с терминалом
-        ClearBackground(Color{ 10, 10, 15, 255 });
+        ClearBackground(Color{8, 8, 12, 255});
 
-        // Пол — чуть светлее фона
-        DrawRectangle(0, scrH * 0.82f, scrW, scrH * 0.18f, Color{ 18, 18, 22, 255 });
+        float floorY = scrH * 0.82f;
+        if (assets.tex_floor.width > 0) {
+            int tileCount = scrW / assets.tex_floor.width + 2;
+            for (int i = 0; i < tileCount; i++) {
+                DrawTexture(assets.tex_floor, i * assets.tex_floor.width, (int)floorY, WHITE);
+            }
+            DrawRectangle(0, (int)(floorY + assets.tex_floor.height), scrW, scrH - (int)(floorY + assets.tex_floor.height), Color{18, 18, 22, 255});
+        }
+
+        if (assets.tex_wall.width > 0) {
+            int wallTileCount = scrW / assets.tex_wall.width + 2;
+            for (int i = 0; i < wallTileCount; i++) {
+                DrawTexture(assets.tex_wall, i * assets.tex_wall.width, (int)(floorY - assets.tex_wall.height), WHITE);
+            }
+        }
+
+        // Терминал как объект мира (только в WAITING)
+        if (state == WAITING) {
+            DrawTextureEx(assets.tex_terminal, {terminalPos.x, terminalPos.y}, 0.0f, terminalScale, WHITE);
+
+            if (player.is_in_area(terminalCenterX)) {
+                float pulse = 0.5f + 0.5f * sinf((float)GetTime() * 5.0f);
+                unsigned char a = (unsigned char)(100 + 155 * pulse);
+                RuText(assets.font, u8"[E]", (int)terminalPos.x + 15, (int)terminalPos.y - 30, 20, Color{ 255, 255, 100, a });
+            }
+        }
+
+        if (state == SOLVED) {
+            float doorScale = 1.5f;
+            int doorH = (int)(assets.tex_elevator_opened.height * doorScale);
+            DrawTextureEx(assets.tex_elevator_opened, {doorPos.x, doorPos.y - doorH}, 0.0f, doorScale, WHITE);
+        }
+
+        player.DrawSprite(assets);
+    }
+
+    // === Рисование UI терминала (поверх экрана, ПОСЛЕ EndMode2D) ===
+    void DrawTerminalUI(Player& player, Assets& assets) {
+        int scrW = GetScreenWidth();
+        int scrH = GetScreenHeight();
+
+        // В WAITING ничего не рисуем — терминал виден в мире
+        if (state == WAITING) return;
+
+        // === Терминал (ЭЛТ-монитор) — фуллскрин ===
+        // Тёмный фон
+        DrawRectangle(0, 0, scrW, scrH, Color{ 10, 10, 15, 255 });
+
+        // Floor
+        float floorY = scrH * 0.82f;
+        if (assets.tex_floor.width > 0) {
+            int tileCount = scrW / assets.tex_floor.width + 2;
+            for (int i = 0; i < tileCount; i++) {
+                DrawTexture(assets.tex_floor, i * assets.tex_floor.width, (int)floorY, WHITE);
+            }
+            DrawRectangle(0, (int)(floorY + assets.tex_floor.height), scrW, scrH - (int)(floorY + assets.tex_floor.height), Color{18, 18, 22, 255});
+        }
 
         // Заголовок этажа
         RuText(assets.font, u8"ЭТАЖ 1 — ПРИВЕТСТВИЕ", scrW / 2 - 220, 8, 22, Color{ 60, 100, 60, 255 });
 
-        // === Терминал (ЭЛТ-монитор) ===
         int termX = (int)(scrW * 0.08f);
         int termY = (int)(scrH * 0.10f);
         int termW = (int)(scrW * 0.84f);
         int termH = (int)(scrH * 0.68f);
 
-        // Корпус монитора (тёмный пластик)
+        // Корпус монитора
         DrawRectangle(termX - 10, termY - 10, termW + 20, termH + 20, Color{ 18, 22, 18, 255 });
-        // Экран (тёмно-зелёный, как старый ЭЛТ)
+        // Экран
         DrawRectangle(termX, termY, termW, termH, Color{ 3, 12, 3, 255 });
-        // Рамка — зелёно-бирюзовая
+        // Рамка
         DrawRectangleLines(termX, termY, termW, termH, Color{ 0, 130, 110, 255 });
-        // CRT-эффект — внутренняя подсветка рамки
+        // CRT-эффект
         DrawRectangleLines(termX + 3, termY + 3, termW - 6, termH - 6, Color{ 0, 80, 60, 120 });
 
         // Свечение экрана
         DrawGlow({ (float)(termX + termW / 2), (float)(termY + termH / 2) },
                  200.0f, Color{ 0, 40, 20, 30 }, Color{ 0, 40, 20, 0 }, 6);
 
-        // Отступы для текста внутри терминала
+        // Отступы для текста
         int tx = termX + 30;
         int ty = termY + 25;
-        int lh = 36;   // высота строки
+        int lh = 36;
 
-        // Мигающий курсор «>»
+        // Мигающий курсор
         DrawCursor(assets, tx - 22, ty);
-
-        // === WAITING ===
-        if (state == WAITING) {
-            RuText(assets.font, u8"СИСТЕМА А.У.Р.А. v3.14", tx, ty, 20, Color{ 0, 180, 100, 255 });
-            RuText(assets.font, u8"НАЖМИТЕ [E] ДЛЯ АВТОРИЗАЦИИ", tx, ty + lh * 2, 26, YELLOW);
-
-            // Подсказка [E] мигает, когда игрок рядом
-            if (player.is_in_area(terminalCenterX)) {
-                float pulse = 0.5f + 0.5f * sinf((float)GetTime() * 5.0f);
-                unsigned char a = (unsigned char)(100 + 155 * pulse);
-                RuText(assets.font, u8"  [E]", tx + RuMeasure(assets.font, u8"НАЖМИТЕ [E] ДЛЯ АВТОРИЗАЦИИ", 26),
-                       ty + lh * 2, 26, Color{ 255, 255, 100, a });
-            }
-        }
 
         // === INTRO ===
         if (state == INTRO) {
             RuText(assets.font, u8"СИСТЕМА А.У.Р.А. v3.14", tx, ty, 20, Color{ 0, 180, 100, 255 });
 
             const char* introLines[4] = {
-                u8"СИСТЕМА: Товарищ Коротков.",
-                u8"СИСТЕМА: Ваш сон на рабочем месте составил 43 821 час.",
-                u8"СИСТЕМА: За это время комплекс был законсервирован. Лифт обесточен.",
-                u8"СИСТЕМА: Для допуска к щитку пройдите тест по электробезопасности."
+                u8"СИСТЕМА: Ну допустим, товарищ Ноунеймов.",
+                u8"СИСТЕМА: Сорок три тысячи восемьсот двадцать один час. Столько вы спали на дежурстве.",
+                u8"СИСТЕМА: Комплекс законсервирован. Электричества нет. Впрочем, как и вашей совести.",
+                u8"СИСТЕМА: Тест по электробезопасности. Три вопроса. Не облажайтесь."
             };
 
             for (int i = 0; i < introLineShown; i++) {
@@ -253,20 +304,18 @@ struct Level1 {
 
         // === QUIZ ===
         if (state == QUIZ) {
-            RuText(assets.font, u8"ТЕСТ ПО ЭЛЕКТРОБЕЗОПАСНОСТИ", tx, ty, 22, Color{ 0, 180, 100, 255 });
+            RuText(assets.font, u8"ДОПУСК К ЩИТКУ · ТЕСТ", tx, ty, 22, Color{ 0, 180, 100, 255 });
             RuText(assets.font, TextFormat(u8"Вопрос %d / 3", currentQuestion + 1), tx, ty + lh, 18, Color{ 0, 150, 80, 255 });
 
-            // Текст вопроса
             RuText(assets.font, questionText[currentQuestion], tx, ty + lh * 2, 22, RAYWHITE);
 
-            // Варианты ответа
             int optY = ty + lh * 4;
             for (int i = 0; i < 4; i++) {
                 bool sel = (i == selectedOption);
                 Color col = sel ? YELLOW : Color{ 0, 160, 80, 255 };
                 const char* prefix = sel ? u8"  \u25ba " : u8"    ";
                 char label[8];
-                sprintf(label, "%c) ", 'A' + i);
+                sprintf_s(label, sizeof(label), "%c) ", 'A' + i);
 
                 int ox = tx;
                 RuText(assets.font, prefix, ox, optY + i * lh, 22, col);
@@ -276,8 +325,7 @@ struct Level1 {
                 RuText(assets.font, optionText[currentQuestion][i], ox, optY + i * lh, 22, col);
             }
 
-            // Подсказка управления
-            RuText(assets.font, u8"[A/D] Выбор   [E] Подтвердить", tx, termY + termH - 35, 16, Color{ 0, 100, 60, 255 });
+            RuText(assets.font, u8"[A/D] Выбор   [E] Подтвердить   [ESC] Выйти", tx, termY + termH - 35, 16, Color{ 0, 100, 60, 255 });
         }
 
         // === FAIL ===
@@ -287,22 +335,19 @@ struct Level1 {
 
         // === SOLVED ===
         if (state == SOLVED) {
-            RuText(assets.font, u8"СИСТЕМА: Допуск разрешён. Питание восстановлено. Удачной смены.",
+            RuText(assets.font, u8"СИСТЕМА: Сойдёт. Лифт запущен. Удачной смены. Надеюсь.",
                    tx, ty + lh, 22, Color{ 0, 230, 120, 255 });
-        }
-
-        // Дверь — появляется только после решения головоломки
-        if (state == SOLVED) {
-            DrawTexture(assets.door_opened, (int)doorPos.x, (int)doorPos.y, WHITE);
-            if (player.is_in_area(doorPos.x)) {
-                RuText(assets.font, u8"[E] ВОЙТИ В ЛИФТ", (int)doorPos.x - 30, (int)doorPos.y - 40, 15, GREEN);
+            // скрытая строка — глюк АУРЫ, мелькает на 1 кадр раз в ~8 сек
+            if (fmodf((float)GetTime(), 8.0f) < 0.05f) {
+                RuText(assets.font, u8"СИСТЕМА: ...хотя тебе это не поможет.",
+                       tx, ty + lh + 35, 16, Color{ 100, 0, 0, 200 });
             }
         }
 
-        // Статус внизу экрана
-        RuText(assets.font, u8"Товарищ Коротков  |  Этаж 1", 10, scrH - 28, 15, Color{ 50, 50, 50, 255 });
-
-        // Игрок
-        player.Draw();
+        // Статус внизу
+        RuText(assets.font, u8"Товарищ Ноунеймов  |  Этаж 1", 10, scrH - 28, 15, Color{ 50, 50, 50, 255 });
+        if (state == INTRO || state == QUIZ || state == FAIL) {
+            RuText(assets.font, u8"[ESC] Выйти из терминала", scrW - 270, scrH - 28, 15, Color{ 255, 100, 100, 200 });
+        }
     }
 };
