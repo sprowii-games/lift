@@ -229,6 +229,22 @@ struct Level6 {
         int scrH = GetScreenHeight();
         ClearBackground(Color{ 15, 18, 22, 255 });
 
+        float floorY = scrH * 0.82f;
+        if (assets.tex_floor.width > 0) {
+            int tileCount = scrW / assets.tex_floor.width + 2;
+            for (int i = 0; i < tileCount; i++) {
+                DrawTexture(assets.tex_floor, i * assets.tex_floor.width, (int)floorY, WHITE);
+            }
+            DrawRectangle(0, (int)(floorY + assets.tex_floor.height), scrW, scrH - (int)(floorY + assets.tex_floor.height), Color{18, 18, 22, 255});
+        }
+
+        if (assets.tex_wall.width > 0) {
+            int wallTileCount = scrW / assets.tex_wall.width + 2;
+            for (int i = 0; i < wallTileCount; i++) {
+                DrawTexture(assets.tex_wall, i * assets.tex_wall.width, (int)(floorY - assets.tex_wall.height), WHITE);
+            }
+        }
+
         RuText(assets.font, u8"ЭТАЖ 4 : ПОБЕГ", scrW/2-140, 30, 26, LIGHTGRAY);
         RuText(assets.font, u8"Система вентиляции. Нужен кратчайший путь.",
                scrW/2-250, 65, 16, GRAY);
@@ -290,8 +306,8 @@ struct Level6 {
 
         // Результаты
         if (state == FAIL) {
-            RuText(assets.font, u8"Путь слишком длинный. Кислорода не хватит.",
-                   scrW/2-270, scrH*0.85f, 20, RED);
+            RuText(assets.font, u8"Слишком длинный путь. Воздух кончился бы на полпути.",
+                   scrW/2-290, scrH*0.85f, 20, RED);
         }
         if (state == SUCCESS || state == CODE_LOCK) {
             RuText(assets.font, TextFormat("Кратчайший путь: %d клеток", bfsPathLen),
@@ -306,19 +322,25 @@ struct Level6 {
         }
 
         // Записка
-        DrawRectangle((int)notePosX,(int)(scrH*0.70f), 36, 28, BROWN);
-        DrawRectangleLines((int)notePosX,(int)(scrH*0.70f), 36, 28, DARKBROWN);
-        RuText(assets.font, u8"записка", (int)notePosX-4, (int)(scrH*0.67f), 13, BEIGE);
+        DrawTexture(assets.tex_note, (int)notePosX, (int)(scrH * 0.70f), WHITE);
         if (noteActive) {
             int nx=scrW/2-400, ny=scrH/2-150;
             DrawRectangle(nx,ny,800,300, Fade(BLACK,0.92f));
             DrawRectangleLines(nx,ny,800,300, GOLD);
             RuText(assets.font, u8"--- ЗАПИСКА ---", nx+30, ny+25, 26, GOLD);
-            RuText(assets.font, u8"Мне надо наверх. Срочно.", nx+30, ny+75, 22, RAYWHITE);
-            RuText(assets.font, u8"Воздуха не хватает.", nx+30, ny+110, 22, RAYWHITE);
-            RuText(assets.font, u8"Как пройти систему вентиляции?", nx+30, ny+150, 22, YELLOW);
+            RuText(assets.font, u8"Мне надо наверх. Прямо сейчас.", nx+30, ny+75, 22, RAYWHITE);
+            RuText(assets.font, u8"Тут дышать почти нечем.", nx+30, ny+110, 22, RAYWHITE);
+            RuText(assets.font, u8"Кратчайший маршрут через вентиляцию — иначе не вывезу.", nx+30, ny+150, 22, YELLOW);
         }
 
-        player.Draw();
+        float doorScale = 1.5f;
+        int doorH = (int)(assets.tex_elevator_closed.height * doorScale);
+        if (state == SUCCESS || state == CODE_LOCK) {
+            DrawTextureEx(assets.tex_elevator_opened, {doorPos.x, doorPos.y - doorH}, 0.0f, doorScale, WHITE);
+        } else {
+            DrawTextureEx(assets.tex_elevator_closed, {doorPos.x, doorPos.y - doorH}, 0.0f, doorScale, WHITE);
+        }
+
+        player.DrawSprite(assets);
     }
 };

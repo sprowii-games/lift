@@ -16,26 +16,32 @@ struct Assets {
     Font font;
 
     // --- Текстуры (спрайты) ---
-    Texture2D door_opened;
-    // Texture2D player_sprite;    // раскомментируй когда будет спрайт игрока
-    // Texture2D bg_floor1;        // раскомментируй когда будет фон 1 этажа
-    // Texture2D aura_terminal;    // раскомментируй когда будет спрайт терминала
+    Texture2D door_opened;                 // ================= совместимость =================
+    Texture2D tex_floor;
+    Texture2D tex_wall;
+    Texture2D tex_elevator_closed;
+    Texture2D tex_elevator_opened;
+    Texture2D tex_note;
+    Texture2D tex_terminal;
+    Texture2D player_stand[2];
+    Texture2D player_walk[4];
+    Texture2D player_run[4];
 
     // --- Звуки (SFX, короткие) ---
-    // Sound sfx_click;            // раскомментируй когда будет звук
-    // Sound sfx_error;
-    // Sound sfx_success;
-    // Sound sfx_door;
-    // Sound sfx_step;
+    Sound sfx_elevator;
 
     // --- Музыка (фоновая, зацикленная) ---
-    // Music music_menu;           // раскомментируй когда будет музыка
-    // Music music_floor1;
-    // Music music_floor2;
+    Music music_menu;
+    Music music_beginning;
+    Music music_first_two;
+    Music music_second_two;
+    Music music_end;
+    Music music_floor1;                  // ================= совместимость =================
+    Music music_floor2;
 
     // --- Настройки ---
-    float sfxVolume   = 0.7f;     // громкость звуков  0.0 — 1.0
-    float musicVolume = 0.5f;     // громкость музыки  0.0 — 1.0
+    float sfxVolume   = 0.7f;             // громкость звуков  0.0 — 1.0
+    float musicVolume = 0.5f;             // громкость музыки  0.0 — 1.0
 };
 
 inline void LoadAssets(Assets& a) {
@@ -49,49 +55,85 @@ inline void LoadAssets(Assets& a) {
         a.font = GetFontDefault();
 
     // --- Текстуры ---
-    a.door_opened = LoadTexture("textures/elevator_opened.png");
-    // a.player_sprite = LoadTexture("textures/player.png");
-    // a.bg_floor1     = LoadTexture("textures/floor1_bg.png");
-    // a.aura_terminal = LoadTexture("textures/aura.png");
+    a.door_opened         = LoadTexture("textures/elevator_opened.png");
+    a.tex_floor           = LoadTexture("textures/floor.png");
+    a.tex_wall            = LoadTexture("textures/wall.png");
+    a.tex_elevator_closed = LoadTexture("textures/elevator-closed.png");
+    a.tex_elevator_opened = LoadTexture("textures/elevator-opened.png");
+    a.tex_note            = LoadTexture("textures/note.png");
+    a.tex_terminal        = LoadTexture("textures/terminal.png");
+
+    // --- Спрайты игрока: стоит (2 кадра) ---
+    a.player_stand[0] = LoadTexture("textures/player/idle/sprite_0.png");
+    a.player_stand[1] = LoadTexture("textures/player/idle/sprite_1.png");
+
+    // --- Спрайты игрока: идёт (4 кадра) ---
+    a.player_walk[0] = LoadTexture("textures/player/walk/sprite_0.png");
+    a.player_walk[1] = LoadTexture("textures/player/walk/sprite_1.png");
+    a.player_walk[2] = LoadTexture("textures/player/walk/sprite_2.png");
+    a.player_walk[3] = LoadTexture("textures/player/walk/sprite_3.png");
+
+    // --- Спрайты игрока: бежит (4 кадра), кадр 0 имеет особое имя ---
+    a.player_run[0] = LoadTexture("textures/player/run/sprite_0.png");
+    a.player_run[1] = LoadTexture("textures/player/run/sprite_1.png");
+    a.player_run[2] = LoadTexture("textures/player/run/sprite_2.png");
+    a.player_run[3] = LoadTexture("textures/player/run/sprite_3.png");
 
     // --- Звуки (нужен InitAudioDevice() в main!) ---
-    // a.sfx_click   = LoadSound("sounds/click.wav");
-    // a.sfx_error   = LoadSound("sounds/error.wav");
-    // a.sfx_success = LoadSound("sounds/success.wav");
-    // a.sfx_door    = LoadSound("sounds/door.wav");
-    // a.sfx_step    = LoadSound("sounds/step.wav");
-    // SetSoundVolume(a.sfx_click,   a.sfxVolume);
-    // SetSoundVolume(a.sfx_error,   a.sfxVolume);
-    // SetSoundVolume(a.sfx_success, a.sfxVolume);
-    // SetSoundVolume(a.sfx_door,    a.sfxVolume);
-    // SetSoundVolume(a.sfx_step,    a.sfxVolume);
+    a.sfx_elevator = LoadSound("sounds/звук при езде на лифте.mp3");
+    SetSoundVolume(a.sfx_elevator, a.sfxVolume);
 
     // --- Музыка (нужен InitAudioDevice() в main!) ---
-    // a.music_menu   = LoadMusicStream("sounds/music_menu.ogg");
-    // a.music_floor1 = LoadMusicStream("sounds/music_floor1.ogg");
-    // a.music_floor2 = LoadMusicStream("sounds/music_floor2.ogg");
-    // a.music_menu.looping   = true;
-    // a.music_floor1.looping = true;
-    // a.music_floor2.looping = true;
-    // SetMusicVolume(a.music_menu,   a.musicVolume);
-    // SetMusicVolume(a.music_floor1, a.musicVolume);
-    // SetMusicVolume(a.music_floor2, a.musicVolume);
+    a.music_menu       = LoadMusicStream("sounds/menu.ogg");
+    a.music_beginning  = LoadMusicStream("sounds/begining(first level).ogg");
+    a.music_first_two  = LoadMusicStream("sounds/first two levels.ogg");
+    a.music_second_two = LoadMusicStream("sounds/second two levels.ogg");
+    a.music_end        = LoadMusicStream("sounds/end(last level).ogg");
+
+    a.music_menu.looping       = true;
+    a.music_beginning.looping  = true;
+    a.music_first_two.looping  = true;
+    a.music_second_two.looping = true;
+    a.music_end.looping        = true;
+
+    SetMusicVolume(a.music_menu,       a.musicVolume);
+    SetMusicVolume(a.music_beginning,  a.musicVolume);
+    SetMusicVolume(a.music_first_two,  a.musicVolume);
+    SetMusicVolume(a.music_second_two, a.musicVolume);
+    SetMusicVolume(a.music_end,        a.musicVolume);
 }
 
 inline void UnloadAssets(Assets& a) {
     UnloadFont(a.font);
+
     UnloadTexture(a.door_opened);
-    // UnloadTexture(a.player_sprite);
-    // UnloadTexture(a.bg_floor1);
-    // UnloadTexture(a.aura_terminal);
-    // UnloadSound(a.sfx_click);
-    // UnloadSound(a.sfx_error);
-    // UnloadSound(a.sfx_success);
-    // UnloadSound(a.sfx_door);
-    // UnloadSound(a.sfx_step);
-    // UnloadMusicStream(a.music_menu);
-    // UnloadMusicStream(a.music_floor1);
-    // UnloadMusicStream(a.music_floor2);
+    UnloadTexture(a.tex_floor);
+    UnloadTexture(a.tex_wall);
+    UnloadTexture(a.tex_elevator_closed);
+    UnloadTexture(a.tex_elevator_opened);
+    UnloadTexture(a.tex_note);
+    UnloadTexture(a.tex_terminal);
+
+    UnloadTexture(a.player_stand[0]);
+    UnloadTexture(a.player_stand[1]);
+
+    UnloadTexture(a.player_walk[0]);
+    UnloadTexture(a.player_walk[1]);
+    UnloadTexture(a.player_walk[2]);
+    UnloadTexture(a.player_walk[3]);
+
+    UnloadTexture(a.player_run[0]);
+    UnloadTexture(a.player_run[1]);
+    UnloadTexture(a.player_run[2]);
+    UnloadTexture(a.player_run[3]);
+
+    UnloadSound(a.sfx_elevator);
+
+    UnloadMusicStream(a.music_menu);
+    UnloadMusicStream(a.music_beginning);
+    UnloadMusicStream(a.music_first_two);
+    UnloadMusicStream(a.music_second_two);
+    UnloadMusicStream(a.music_end);
 }
 
 // ============================================================

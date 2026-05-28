@@ -145,6 +145,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assets.h" />
+    <ClInclude Include="dialogsystem.h" />
     <ClInclude Include="level.h" />
     <ClInclude Include="level1.h" />
     <ClInclude Include="level2.h" />

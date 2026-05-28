@@ -41,7 +41,7 @@ struct Level2 {
         for (int i = 0; i < BAR_COUNT; i++) barsOriginal[i] = bars[i];
     }
 
-    int CountBubbleOps() {
+    int CountBubbleOps() const {
         int b[20]; for (int i=0;i<BAR_COUNT;i++) b[i]=barsOriginal[i];
         int ops = 0;
         for (int i = 0; i < BAR_COUNT-1; i++)
@@ -142,8 +142,24 @@ struct Level2 {
         int scrH = GetScreenHeight();
         ClearBackground(Color{ 12, 8, 10, 255 });
 
+        float floorY = scrH * 0.82f;
+        if (assets.tex_floor.width > 0) {
+            int tileCount = scrW / assets.tex_floor.width + 2;
+            for (int i = 0; i < tileCount; i++) {
+                DrawTexture(assets.tex_floor, i * assets.tex_floor.width, (int)floorY, WHITE);
+            }
+            DrawRectangle(0, (int)(floorY + assets.tex_floor.height), scrW, scrH - (int)(floorY + assets.tex_floor.height), Color{18, 18, 22, 255});
+        }
+
+        if (assets.tex_wall.width > 0) {
+            int wallTileCount = scrW / assets.tex_wall.width + 2;
+            for (int i = 0; i < wallTileCount; i++) {
+                DrawTexture(assets.tex_wall, i * assets.tex_wall.width, (int)(floorY - assets.tex_wall.height), WHITE);
+            }
+        }
+
         RuText(assets.font, u8"ЭТАЖ 2 : ТИШИНА", scrW/2 - 130, 30, 26, Color{180,60,60,255});
-        RuText(assets.font, u8"А.У.Р.А. не отвечает...", scrW/2 - 150, 65, 18, Color{120,50,50,255});
+        RuText(assets.font, u8"А.У.Р.А. — нет сигнала", scrW/2 - 130, 65, 18, Color{120,50,50,255});
 
         // Сломанный терминал
         DrawRectangle(scrW/2-150, 100, 300, 180, Color{15,10,12,255});
@@ -193,29 +209,35 @@ struct Level2 {
             RuText(assets.font, TextFormat("Сортировка %s... %.1fs", switchLabels[sortType], sortElapsed),
                    scrW/2-180, scrH*0.72f, 20, RAYWHITE);
         } else if (state == FAIL) {
-            RuText(assets.font, u8"Слишком долго. Система не дождалась.", scrW/2-250, scrH*0.72f, 22, RED);
-            RuText(assets.font, u8"Попробуйте другой алгоритм.", scrW/2-160, scrH*0.78f, 16, GRAY);
+            RuText(assets.font, u8"Слишком долго. Данные не вывезли.", scrW/2-220, scrH*0.72f, 22, RED);
+            RuText(assets.font, u8"Попробуй другой алгоритм.", scrW/2-160, scrH*0.78f, 16, GRAY);
         } else if (state == SUCCESS) {
             RuText(assets.font, u8"ОТЛИЧНО! Путь открыт.", scrW/2-160, scrH*0.72f, 24, GREEN);
-            DrawTexture(assets.door_opened, (int)doorPos.x, (int)doorPos.y, WHITE);
+            float doorScale = 1.5f;
+            int doorH = (int)(assets.tex_elevator_opened.height * doorScale);
+            DrawTextureEx(assets.tex_elevator_opened, {doorPos.x, doorPos.y - doorH}, 0.0f, doorScale, WHITE);
             RuText(assets.font, u8"[E] ВЫЙТИ", (int)doorPos.x-20, (int)doorPos.y-40, 15, GREEN);
         }
 
+        if (state != SUCCESS) {
+            float doorScale = 1.5f;
+            int doorH = (int)(assets.tex_elevator_closed.height * doorScale);
+            DrawTextureEx(assets.tex_elevator_closed, {doorPos.x, doorPos.y - doorH}, 0.0f, doorScale, WHITE);
+        }
+
         // Записка
-        DrawRectangle((int)notePosX, (int)(scrH*0.70f), 36, 28, BROWN);
-        DrawRectangleLines((int)notePosX, (int)(scrH*0.70f), 36, 28, DARKBROWN);
-        RuText(assets.font, u8"записка", (int)notePosX-4, (int)(scrH*0.67f), 13, BEIGE);
+        DrawTexture(assets.tex_note, (int)notePosX, (int)(scrH * 0.70f), WHITE);
         if (noteActive) {
             int nx = scrW/2-400, ny = scrH/2-200;
             DrawRectangle(nx, ny, 800, 400, Fade(BLACK, 0.92f));
             DrawRectangleLines(nx, ny, 800, 400, GOLD);
             RuText(assets.font, u8"--- ЗАПИСКА ---", nx+30, ny+25, 26, GOLD);
             RuText(assets.font, u8"Центральный кластер завис.", nx+30, ny+75, 22, RAYWHITE);
-            RuText(assets.font, u8"Я же сисадмин... то есть, физик...", nx+30, ny+110, 22, RAYWHITE);
-            RuText(assets.font, u8"Короче, я знаю, как это чинить.", nx+30, ny+145, 22, RAYWHITE);
-            RuText(assets.font, u8"Странно. Откуда я знаю?", nx+30, ny+190, 22, Color{200,180,80,255});
+            RuText(assets.font, u8"Я ж сисадмин... в смысле, физик.", nx+30, ny+110, 22, RAYWHITE);
+            RuText(assets.font, u8"Ладно, починю. Тут делов на пять минут.", nx+30, ny+145, 22, RAYWHITE);
+            RuText(assets.font, u8"Хотя откуда я вообще это знаю?..", nx+30, ny+190, 22, Color{200,180,80,255});
         }
 
-        player.Draw();
+        player.DrawSprite(assets);
     }
 };

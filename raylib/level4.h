@@ -226,6 +226,22 @@ struct Level4 {
         // Фон — тёмный с зелёным оттенком
         ClearBackground(Color{ 10, 15, 10, 255 });
 
+        float floorY = scrH * 0.82f;
+        if (assets.tex_floor.width > 0) {
+            int tileCount = scrW / assets.tex_floor.width + 2;
+            for (int i = 0; i < tileCount; i++) {
+                DrawTexture(assets.tex_floor, i * assets.tex_floor.width, (int)floorY, WHITE);
+            }
+            DrawRectangle(0, (int)(floorY + assets.tex_floor.height), scrW, scrH - (int)(floorY + assets.tex_floor.height), Color{18, 18, 22, 255});
+        }
+
+        if (assets.tex_wall.width > 0) {
+            int wallTileCount = scrW / assets.tex_wall.width + 2;
+            for (int i = 0; i < wallTileCount; i++) {
+                DrawTexture(assets.tex_wall, i * assets.tex_wall.width, (int)(floorY - assets.tex_wall.height), WHITE);
+            }
+        }
+
         // Заголовок
         RuText(assets.font, u8"\u042d\u0422\u0410\u0416 3 : \u041b\u0410\u0411\u041e\u0420\u0410\u0422\u041e\u0420\u0418\u042f",
                scrW / 2 - 220, 15, 26, LIGHTGRAY);
@@ -360,17 +376,14 @@ struct Level4 {
 
             // Неправильный ответ — сообщение
             if (quizAnswer != -1 && quizAnswer != 2) {
-                RuText(assets.font, u8"\u041d\u0435\u043f\u0440\u0430\u0432\u0438\u043b\u044c\u043d\u043e! \u041f\u043e\u0434\u0443\u043c\u0430\u0439\u0442\u0435 \u0435\u0449\u0451...",
+                RuText(assets.font, u8"\u0422\u044b \u0436\u0435 \u0441\u0430\u043c \u0432\u0441\u0451 \u0432\u0438\u0434\u0435\u043b. \u041d\u0435 \u0442\u0443\u043f\u0438.",
                        scrW / 2 - 180, (int)(qy + 60), 16, RED);
                 quizAnswer = -1;
             }
         }
 
         // Записка на столе (левая)
-        DrawRectangle((int)notePosX, (int)(scrH * 0.70f), 36, 28, BROWN);
-        DrawRectangleLines((int)notePosX, (int)(scrH * 0.70f), 36, 28, DARKBROWN);
-        RuText(assets.font, u8"\u0437\u0430\u043f\u0438\u0441\u043a\u0430",
-               (int)notePosX - 4, (int)(scrH * 0.67f), 13, BEIGE);
+        DrawTexture(assets.tex_note, (int)notePosX, (int)(scrH * 0.70f), WHITE);
 
         if (noteActive) {
             int nx = scrW / 2 - 400;
@@ -386,30 +399,31 @@ struct Level4 {
                 ? Color{ 0, 255, 0, 255 } : RAYWHITE;
 
             RuText(assets.font,
-                   u8"\u0421\u0443\u0431\u044a\u0435\u043a\u0442 \u0414.\u041a. \u043d\u0430\u0434\u0435\u043b \u0445\u0430\u043b\u0430\u0442 \u043f\u0435\u0440\u0435\u0434 \u043e\u0431\u043b\u0443\u0447\u0435\u043d\u0438\u0435\u043c.",
+                   u8"\u041e\u0431\u044a\u0435\u043a\u0442 \u0414.\u041a. \u041d\u0430\u0434\u0435\u043b \u0445\u0430\u043b\u0430\u0442 \u0438\u0437 \u0448\u043a\u0430\u0444\u0447\u0438\u043a\u0430 B-7. \u0417\u0430\u0442\u0435\u043c \u2014 \u043e\u0431\u043b\u0443\u0447\u0435\u043d\u0438\u0435.",
                    nx + 30, ny + 75, 20, textColor);
             RuText(assets.font,
-                   u8"\u041a\u043e\u043d\u0444\u0430\u0431\u0443\u043b\u044f\u0446\u0438\u044f 100%.",
+                   u8"\u041a\u043e\u043d\u0444\u0430\u0431\u0443\u043b\u044f\u0446\u0438\u044f \u043f\u043e\u043b\u043d\u0430\u044f. \u041b\u0438\u0447\u043d\u043e\u0441\u0442\u044c \u0432\u044b\u0442\u0435\u0441\u043d\u0435\u043d\u0430.",
                    nx + 30, ny + 105, 20, textColor);
             RuText(assets.font,
-                   u8"\u041e\u043d \u0432\u0435\u0440\u0438\u0442, \u0447\u0442\u043e \u043e\u043d \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a.",
+                   u8"\u0421\u0447\u0438\u0442\u0430\u0435\u0442 \u0441\u0435\u0431\u044f \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u043e\u043c. \u041d\u0435 \u0441\u043f\u043e\u0440\u0438\u0442\u044c.",
                    nx + 30, ny + 135, 20, textColor);
 
             // Глючная строка
             if (glitch > 0.8f) {
                 RuText(assets.font,
-                       u8"\u041e\u043d \u043d\u0415 \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a. \u041e\u043d \u043d\u0415 \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a.",
+                       u8"\u041e\u041d \u041d\u0415 \u0421\u041e\u0422\u0420\u0423\u0414\u041d\u0418\u041a \u041e\u041d \u041d\u0415 \u0421\u041e\u0422\u0420\u0423\u0414\u041d\u0418\u041a",
                        nx + 30, ny + 185, 20, Color{ 255, 0, 80, 200 });
             }
         }
 
-        // Дверь — когда загадка решена
         if (state == SOLVED) {
-            DrawTexture(assets.door_opened, (int)doorPos.x, (int)doorPos.y, WHITE);
+            float doorScale = 1.5f;
+            int doorH = (int)(assets.tex_elevator_opened.height * doorScale);
+            DrawTextureEx(assets.tex_elevator_opened, {doorPos.x, doorPos.y - doorH}, 0.0f, doorScale, WHITE);
             RuText(assets.font, u8"[E] \u0412\u041e\u0419\u0422\u0418 \u0412 \u041b\u0418\u0424\u0422",
                    (int)doorPos.x - 30, (int)doorPos.y - 40, 15, GREEN);
         }
 
-        player.Draw();
+        player.DrawSprite(assets);
     }
 };

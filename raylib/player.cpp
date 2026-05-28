@@ -1,30 +1,62 @@
 #include "player.h"
+#include "assets.h"
 #include <cmath>
 
 void Player::Update() {
     float dt = GetFrameTime();
     animTimer += dt;
 
+    bool prevMoving = (direction != 0);
+    bool prevRunning = is_running;
+
     direction = 0;
     bool moving = false;
 
-    if (IsKeyDown(KEY_D)) {
+    if (IsKeyDown(KEY_D) && can_move) {
         direction = 1;
         moving = true;
     }
-    if (IsKeyDown(KEY_A)) {
+    if (IsKeyDown(KEY_A) && can_move) {
         direction = -1;
         moving = true;
     }
 
     is_running = false;
-    if (IsKeyDown(KEY_LEFT_SHIFT) && moving && can_run) {
+    if (IsKeyDown(KEY_LEFT_SHIFT) && moving && can_move) {
         is_running = true;
     }
 
     if (moving) {
         float speed = is_running ? run_speed : base_speed;
         pos.x += speed * direction * dt;
+        lastDirection = direction;
+    }
+
+    bool curMoving = (direction != 0);
+    bool curRunning = is_running;
+
+    if (prevMoving != curMoving || prevRunning != curRunning) {
+        currentFrame = 0;
+        frameTimer = 0.0f;
+    }
+
+    float frameDuration;
+    int maxFrames;
+    if (direction == 0) {
+        frameDuration = idleFrameDuration;
+        maxFrames = 2;
+    } else if (is_running) {
+        frameDuration = runFrameDuration;
+        maxFrames = 4;
+    } else {
+        frameDuration = walkFrameDuration;
+        maxFrames = 4;
+    }
+
+    frameTimer += dt;
+    if (frameTimer >= frameDuration) {
+        frameTimer = 0.0f;
+        currentFrame = (currentFrame + 1) % maxFrames;
     }
 }
 
@@ -32,65 +64,63 @@ bool Player::is_in_area(float x) const {
     return (x - 15.0f < pos.x && pos.x < x + 100.0f);
 }
 
+void Player::stop_brother() {
+    direction = 0;
+    can_move = false;
+    is_running = false;
+}
+
 void Player::Draw() const {
-    float bob = 0.0f;
-    float breatheW = 1.0f * sinf(animTimer * 3.0f);
+    DrawEllipse(pos.x, pos.y + 36, 28, 10, Fade(BLACK, 0.3f));
+}
 
-    if (direction != 0) {
-        bob = 2.0f * sinf(animTimer * 10.0f);
-    }
-
-    // Shadow
+void Player::DrawSprite(const Assets& assets) const {
     DrawEllipse(pos.x, pos.y + 36, 28, 10, Fade(BLACK, 0.3f));
 
-    // Coat tail (sways with movement)
-    float sway = sinf(animTimer * 10.0f + PI / 2.0f) * 4.0f;
-    Vector2 t1 = Vector2{ pos.x - 6.0f + sway * 0.5f, pos.y + 18.0f + bob };
-    Vector2 t2 = Vector2{ pos.x + 6.0f + sway * 0.5f, pos.y + 18.0f + bob };
-    Vector2 t3 = Vector2{ pos.x + sway, pos.y + 32.0f + bob };
-    DrawTriangle(t1, t2, t3, Color{ 230, 230, 245 });
-
-    // Legs
-    float legSwingL = 0.0f;
-    float legSwingR = 0.0f;
-    if (direction != 0) {
-        legSwingL = sinf(animTimer * 10.0f) * 20.0f;
-        legSwingR = sinf(animTimer * 10.0f + PI) * 20.0f;
+    Texture2D tex = {};
+    int maxFrames = 1;
+    if (direction == 0) {
+        tex = assets.player_stand[0];
+        maxFrames = 2;
+    } else if (is_running) {
+        tex = assets.player_run[0];
+        maxFrames = 4;
+    } else {
+        tex = assets.player_walk[0];
+        maxFrames = 4;
     }
 
-    Rectangle legL = Rectangle{ pos.x - 9.0f, pos.y + 18.0f + bob, 8.0f, 22.0f };
-    Rectangle legR = Rectangle{ pos.x + 1.0f, pos.y + 18.0f + bob, 8.0f, 22.0f };
-    DrawRectanglePro(legL, Vector2{ 4.0f, 0.0f }, legSwingL, Color{ 40, 40, 60 });
-    DrawRectanglePro(legR, Vector2{ 4.0f, 0.0f }, legSwingR, Color{ 40, 40, 60 });
-
-    // Body / lab coat
-    Rectangle body = Rectangle{ pos.x - 13.0f - breatheW * 0.5f, pos.y - 18.0f + bob, 26.0f + breatheW, 36.0f };
-    DrawRectangleRec(body, Color{ 230, 230, 245 });
-
-    // Head
-    Vector2 head = Vector2{ pos.x, pos.y - 30.0f + bob };
-    DrawCircleV(head, 14.0f, Color{ 220, 180, 160 });
-
-    // Hair
-    DrawCircleV(Vector2{ head.x - 6.0f, head.y - 10.0f }, 4.0f, Color{ 60, 50, 50 });
-    DrawCircleV(Vector2{ head.x + 6.0f, head.y - 10.0f }, 4.0f, Color{ 60, 50, 50 });
-    DrawCircleV(Vector2{ head.x, head.y - 12.0f }, 5.0f, Color{ 60, 50, 50 });
-
-    // Arms (swing opposite to legs)
-    float armSwingL = 0.0f;
-    float armSwingR = 0.0f;
-    if (direction != 0) {
-        armSwingL = sinf(animTimer * 10.0f + PI) * 25.0f;
-        armSwingR = sinf(animTimer * 10.0f) * 25.0f;
+    if (tex.id == 0) {
+        Color bodyColor = is_running ? Color{255, 100, 50, 255} : Color{100, 180, 255, 255};
+        int w = 32, h = 48;
+        DrawRectangle((int)pos.x - w/2, (int)pos.y - h, w, h, bodyColor);
+        DrawCircle(pos.x, pos.y - h - 6, 10, Color{255, 220, 180, 255});
+        float bob = (direction != 0) ? 3.0f * sinf(animTimer * 12.0f) : 0.0f;
+        DrawRectangle((int)pos.x - 10, (int)pos.y + (int)bob, 8, 14, Color{40, 40, 60, 255});
+        DrawRectangle((int)pos.x + 2,  (int)pos.y - (int)bob, 8, 14, Color{40, 40, 60, 255});
+        return;
     }
 
-    Rectangle armL = Rectangle{ pos.x - 11.0f, pos.y - 12.0f + bob, 6.0f, 20.0f };
-    Rectangle armR = Rectangle{ pos.x + 5.0f, pos.y - 12.0f + bob, 6.0f, 20.0f };
-    DrawRectanglePro(armL, Vector2{ 3.0f, 0.0f }, armSwingL, Color{ 200, 200, 210 });
-    DrawRectanglePro(armR, Vector2{ 3.0f, 0.0f }, armSwingR, Color{ 200, 200, 210 });
+    int frame = currentFrame;
+    if (frame < 0) frame = 0;
+    if (frame >= maxFrames) frame = maxFrames - 1;
 
-    // Eyes (always open, always black)
-    float eyeShift = (float)direction * 3.0f;
-    DrawEllipse(head.x - 5.0f + eyeShift, head.y - 2.0f, 3.0f, 4.0f, BLACK);
-    DrawEllipse(head.x + 5.0f + eyeShift, head.y - 2.0f, 3.0f, 4.0f, BLACK);
+    if (direction == 0) {
+        tex = assets.player_stand[frame];
+    } else if (is_running) {
+        tex = assets.player_run[frame];
+    } else {
+        tex = assets.player_walk[frame];
+    }
+
+    short drawDir = (direction == 0) ? lastDirection : direction;
+    float flipX = (drawDir == -1) ? -1.0f : 1.0f;
+
+    float scaledW = tex.width * spriteScale;
+    float scaledH = tex.height * spriteScale;
+
+    Rectangle src = { 0, 0, flipX * (float)tex.width, (float)tex.height };
+    Rectangle dst = { pos.x - scaledW / 2.0f, pos.y - scaledH, scaledW, scaledH };
+    Vector2 origin = { 0, 0 };
+    DrawTexturePro(tex, src, dst, origin, 0.0f, WHITE);
 }
