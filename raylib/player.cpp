@@ -71,11 +71,11 @@ void Player::stop_brother() {
 }
 
 void Player::Draw() const {
-    DrawEllipse(pos.x, pos.y + 36, 28, 10, Fade(BLACK, 0.3f));
+    DrawEllipse(pos.x, pos.y + shadowOffsetY, shadowRadiusX, shadowRadiusY, Fade(BLACK, 0.3f));
 }
 
 void Player::DrawSprite(const Assets& assets) const {
-    DrawEllipse(pos.x, pos.y + 36, 28, 10, Fade(BLACK, 0.3f));
+    DrawEllipse(pos.x, pos.y + shadowOffsetY, shadowRadiusX, shadowRadiusY, Fade(BLACK, 0.3f));
 
     Texture2D tex = {};
     int maxFrames = 1;

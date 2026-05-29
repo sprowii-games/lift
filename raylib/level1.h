@@ -22,11 +22,12 @@ struct Level1 {
     float terminalCenterX;   // X-центр терминала — куда «примораживается» игрок
 
     // Состояния экрана терминала
-    enum State { WAITING, INTRO, QUIZ, FAIL, SOLVED };
+    enum State { WAITING, INTRO, QUIZ, FAIL, SOLVED, UNLOCKED };
     State state;
     float stateTimer;
 
     float terminalScale = 1.5f;   // размер терминала в мире (меньше = меньше терминал)
+    float escHoldTimer = 0.0f;    // таймер удержания ESC для выхода из терминала
 
     // Интро — построчное появление текста АУРА
     int introLineShown;      // сколько строк уже видно (0..4)
@@ -54,10 +55,11 @@ struct Level1 {
         currentQuestion = 0;
         selectedOption = 0;
         failMessageIndex = 0;
-        terminalScale = 1.5f;
+        terminalScale = 0.2f;
+        escHoldTimer = 0.0f;
 
-        doorPos = { screenW * 0.88f, screenH * 0.5f };
-        terminalPos = { screenW * 0.08f, screenH * 0.10f };
+        doorPos = { screenW * 0.88f, screenH * 0.83f };
+        terminalPos = { screenW * 0.5f, screenH * 0.74f };
         terminalCenterX = screenW * 0.5f;
         notePosX = screenW * 0.08f;
 
@@ -108,14 +110,30 @@ struct Level1 {
         }
 
         // Во время работы с терминалом «примораживаем» игрока
-        if (state == INTRO || state == QUIZ || state == FAIL) {
-            if (IsKeyPressed(KEY_ESCAPE)) {
-                state = WAITING;
+        if (state == INTRO || state == QUIZ || state == FAIL || state == SOLVED) {
+            // Выход из терминала: BACKSPACE (мгновенно) или ESC (удерживать 0.25с)
+            if (IsKeyPressed(KEY_BACKSPACE)) {
+                if (state == SOLVED) state = UNLOCKED;
+                else state = WAITING;
+                escHoldTimer = 0.0f;
+                camera.last_direction = 1;   // камера смотрит вправо — к лифту
                 return;
+            }
+            if (IsKeyDown(KEY_ESCAPE)) {
+                escHoldTimer += dt;
+                if (escHoldTimer > 0.25f) {
+                    if (state == SOLVED) state = UNLOCKED;
+                    else state = WAITING;
+                    escHoldTimer = 0.0f;
+                    camera.last_direction = 1;   // камера смотрит вправо — к лифту
+                    return;
+                }
+            } else {
+                escHoldTimer = 0.0f;
             }
             player.pos.x = terminalCenterX;
             player.direction = 0;
-            camera.last_direction = 0;
+            // НЕ трогаем camera.last_direction — пусть смотрит туда, куда игрок шёл
         }
 
         // --- INTRO: построчное появление текста АУРА ---
@@ -175,12 +193,19 @@ struct Level1 {
             return;
         }
 
-        // --- SOLVED: идём к двери ---
+        // --- SOLVED: идём к двери (внутри терминала) ---
         if (state == SOLVED) {
             if (player.is_in_area(doorPos.x) && IsKeyPressed(KEY_E)) {
                 completed = true;
             }
             return;
+        }
+
+        // --- UNLOCKED: лифт открыт, игрок снаружи ---
+        if (state == UNLOCKED) {
+            if (player.is_in_area(doorPos.x) && IsKeyPressed(KEY_E)) {
+                completed = true;
+            }
         }
     }
 
@@ -226,10 +251,13 @@ struct Level1 {
             }
         }
 
-        if (state == SOLVED) {
-            float doorScale = 1.5f;
+        if (state == SOLVED || state == UNLOCKED) {
+            float doorScale = 0.2f;
             int doorH = (int)(assets.tex_elevator_opened.height * doorScale);
             DrawTextureEx(assets.tex_elevator_opened, {doorPos.x, doorPos.y - doorH}, 0.0f, doorScale, WHITE);
+            if (state == UNLOCKED && player.is_in_area(doorPos.x)) {
+                RuText(assets.font, u8"[E] Войти", (int)doorPos.x - 30, (int)doorPos.y - doorH - 30, 18, GREEN);
+            }
         }
 
         player.DrawSprite(assets);
@@ -240,8 +268,8 @@ struct Level1 {
         int scrW = GetScreenWidth();
         int scrH = GetScreenHeight();
 
-        // В WAITING ничего не рисуем — терминал виден в мире
-        if (state == WAITING) return;
+        // В WAITING и UNLOCKED ничего не рисуем — терминал виден в мире
+        if (state == WAITING || state == UNLOCKED) return;
 
         // === Терминал (ЭЛТ-монитор) — фуллскрин ===
         // Тёмный фон
@@ -288,7 +316,7 @@ struct Level1 {
 
         // === INTRO ===
         if (state == INTRO) {
-            RuText(assets.font, u8"СИСТЕМА А.У.Р.А. v3.14", tx, ty, 20, Color{ 0, 180, 100, 255 });
+            RuText(assets.font, u8"СИСТЕМА А.У.Р.А. v6.8", tx, ty, 20, Color{ 0, 180, 100, 255 });
 
             const char* introLines[4] = {
                 u8"СИСТЕМА: Ну допустим, товарищ Ноунеймов.",
@@ -300,6 +328,7 @@ struct Level1 {
             for (int i = 0; i < introLineShown; i++) {
                 RuText(assets.font, introLines[i], tx, ty + lh * (i + 1), 20, Color{ 0, 200, 100, 255 });
             }
+            RuText(assets.font, u8"[BACKSPACE] — выйти", tx, termY + termH - 35, 16, Color{ 0, 100, 60, 255 });
         }
 
         // === QUIZ ===
@@ -325,12 +354,13 @@ struct Level1 {
                 RuText(assets.font, optionText[currentQuestion][i], ox, optY + i * lh, 22, col);
             }
 
-            RuText(assets.font, u8"[A/D] Выбор   [E] Подтвердить   [ESC] Выйти", tx, termY + termH - 35, 16, Color{ 0, 100, 60, 255 });
+            RuText(assets.font, u8"[A/D] Выбор   [E] Подтвердить   [BACKSPACE] Выйти", tx, termY + termH - 35, 16, Color{ 0, 100, 60, 255 });
         }
 
         // === FAIL ===
         if (state == FAIL) {
             RuText(assets.font, failMessages[failMessageIndex], tx, ty + lh, 24, Color{ 220, 50, 50, 255 });
+            RuText(assets.font, u8"[BACKSPACE] — выйти", tx, termY + termH - 35, 16, Color{ 0, 100, 60, 255 });
         }
 
         // === SOLVED ===
@@ -342,12 +372,10 @@ struct Level1 {
                 RuText(assets.font, u8"СИСТЕМА: ...хотя тебе это не поможет.",
                        tx, ty + lh + 35, 16, Color{ 100, 0, 0, 200 });
             }
+            RuText(assets.font, u8"[BACKSPACE] — выйти и идти к лифту", tx, termY + termH - 35, 16, Color{ 0, 100, 60, 255 });
         }
 
         // Статус внизу
         RuText(assets.font, u8"Товарищ Ноунеймов  |  Этаж 1", 10, scrH - 28, 15, Color{ 50, 50, 50, 255 });
-        if (state == INTRO || state == QUIZ || state == FAIL) {
-            RuText(assets.font, u8"[ESC] Выйти из терминала", scrW - 270, scrH - 28, 15, Color{ 255, 100, 100, 200 });
-        }
     }
 };

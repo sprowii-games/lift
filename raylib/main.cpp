@@ -4,7 +4,6 @@
 #include "menu.h"
 #include "assets.h"
 #include "level1.h"
-#include "level2.h"
 #include "level4.h"
 #include "level6.h"
 #include "level8.h"
@@ -52,13 +51,12 @@ int main() {
     float camera_speed = 5.0f;
 
     Level1 level1;
-    Level2 level2;
     Level4 level4;
     Level6 level6;
     Level8 level8;
 
 
-    const int levelCount = 5;
+    const int levelCount = 4;
     int currentLevel = 0;
     bool gameCompleted = false;
     bool gameBadEnd = false;
@@ -71,11 +69,10 @@ int main() {
     int currentMusicTrack = -1;
 
     level1.Init(width, height);
-    level2.Init(width, height);
     level4.Init(width, height);
     level6.Init(width, height);
     level8.Init(width, height);
-    player.pos = { width * 0.166f, height * 0.75f };
+    player.pos = { width * 0.166f, height * 0.825f };
 
     while (!WindowShouldClose()) {
         int desiredTrack = -1;
@@ -83,9 +80,9 @@ int main() {
         else if (gameCompleted) desiredTrack = -1;
         else if (transitState == TRANSIT_NONE) {
             if (currentLevel == 0) desiredTrack = 1;
-            else if (currentLevel <= 2) desiredTrack = 2;
-            else if (currentLevel == 3) desiredTrack = 3;
-            else if (currentLevel == 4) desiredTrack = 4;
+            else if (currentLevel == 1) desiredTrack = 2;
+            else if (currentLevel == 2) desiredTrack = 3;
+            else if (currentLevel == 3) desiredTrack = 4;
         }
 
         if (desiredTrack != currentMusicTrack) {
@@ -128,12 +125,12 @@ int main() {
                     if (IsKeyPressed(KEY_R)) {
                         switch (currentLevel) {
                             case 0: level1.Init(width, height); break;
-                            case 1: level2.Init(width, height); break;
-                            case 2: level4.Init(width, height); break;
-                            case 3: level6.Init(width, height); break;
-                            case 4: level8.Init(width, height); break;
+                            case 1: level4.Init(width, height); break;
+                            case 2: level6.Init(width, height); break;
+                            case 3: level8.Init(width, height); break;
                         }
-                        player.pos = { width * 0.166f, height * 0.75f };
+                        player.pos = { width * 0.166f, height * 0.82f };
+                        player.can_move = true;
                     }
 
                     player.Update();
@@ -143,10 +140,9 @@ int main() {
                     bool levelBadEnd = false;
                     switch (currentLevel) {
                         case 0: level1.Update(player, camera); levelCompleted = level1.completed; levelBadEnd = level1.badEnding; break;
-                        case 1: level2.Update(player); levelCompleted = level2.completed; levelBadEnd = level2.badEnding; break;
-                        case 2: level4.Update(player); levelCompleted = level4.completed; levelBadEnd = level4.badEnding; break;
-                        case 3: level6.Update(player); levelCompleted = level6.completed; levelBadEnd = level6.badEnding; break;
-                        case 4: level8.Update(player); levelCompleted = level8.completed; levelBadEnd = level8.badEnding; break;
+                        case 1: level4.Update(player); levelCompleted = level4.completed; levelBadEnd = level4.badEnding; break;
+                        case 2: level6.Update(player); levelCompleted = level6.completed; levelBadEnd = level6.badEnding; break;
+                        case 3: level8.Update(player); levelCompleted = level8.completed; levelBadEnd = level8.badEnding; break;
                     }
 
                     if (levelCompleted) {
@@ -174,7 +170,7 @@ int main() {
                     }
                     else if (transitState == TRANSIT_SHAKE) {
                         if (!elevatorSoundPlayed) {
-                            PlaySound(assets.sfx_elevator);
+                            PlaySound(assets.sfx_elevator_up);
                             elevatorSoundPlayed = true;
                             camera.AddShake(2.0f);
                             camera.Update(player, camera_speed);
@@ -184,19 +180,24 @@ int main() {
                                 transitState = TRANSIT_NONE;
                             } else {
                                 switch (currentLevel) {
-                                    case 1: level2.Init(width, height); break;
-                                    case 2: level4.Init(width, height); break;
-                                    case 3: level6.Init(width, height); break;
-                                    case 4: level8.Init(width, height); break;
+                                    case 1: level4.Init(width, height); break;
+                                    case 2: level6.Init(width, height); break;
+                                    case 3: level8.Init(width, height); break;
                                 }
-                                player.pos = { width * 0.166f, height * 0.75f };
+                                player.pos = { width * 0.166f, height * 0.82f };
                             }
                         }
-                        camera.Update(player, camera_speed);
 
-                        if (transitTimer > 2.5f && !gameCompleted) {
-                            transitState = TRANSIT_FADE_IN;
-                            transitTimer = 0.0f;
+                        if (!gameCompleted) {
+                            // тряска всё время пока звук играет
+                            camera.AddShake(0.5f);
+                            camera.Update(player, camera_speed);
+
+                            // переход когда звук кончится (минимум 0.3с на всякий случай)
+                            if (transitTimer > 0.3f && !IsSoundPlaying(assets.sfx_elevator_up)) {
+                                transitState = TRANSIT_FADE_IN;
+                                transitTimer = 0.0f;
+                            }
                         }
                     }
                     else if (transitState == TRANSIT_FADE_IN) {
@@ -214,12 +215,22 @@ int main() {
                 BeginMode2D(camera.cam);
                 switch (currentLevel) {
                     case 0: level1.DrawWorld(player, assets); break;
-                    case 1: level2.Draw(player, assets); break;
-                    case 2: level4.Draw(player, assets); break;
-                    case 3: level6.Draw(player, assets); break;
-                    case 4: level8.Draw(player, assets); break;
+                    case 1: level4.Draw(player, assets); break;
+                    case 2: level6.Draw(player, assets); break;
+                    case 3: level8.Draw(player, assets); break;
                 }
                 EndMode2D();
+
+                // Виньетка: включается после 1-го этажа, выключается на крыше
+                if (currentLevel >= 1 && currentLevel <= 2) {
+                    bool flip = (player.lastDirection == -1);   // lastDirection — стабильнее, не сбрасывается в 0
+                    Texture2D v = assets.tex_vignette;
+                    if (v.id != 0) {
+                        Rectangle src = { 0.0f, 0.0f, flip ? -(float)v.width : (float)v.width, (float)v.height };
+                        Rectangle dst = { 0.0f, 0.0f, (float)width, (float)height };
+                        DrawTexturePro(v, src, dst, {0.0f, 0.0f}, 0.0f, WHITE);
+                    }
+                }
 
                 if (currentLevel == 0) {
                     level1.DrawTerminalUI(player, assets);
