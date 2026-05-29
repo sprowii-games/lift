@@ -10,6 +10,13 @@
 
 enum TransitState { TRANSIT_NONE, TRANSIT_FADE_OUT, TRANSIT_SHAKE, TRANSIT_FADE_IN };
 
+static void ClampPlayerToLevelBounds(Player& player, int screenW) {
+    const float leftWall = 45.0f;
+    const float rightWall = screenW - 45.0f;
+    if (player.pos.x < leftWall) player.pos.x = leftWall;
+    if (player.pos.x > rightWall) player.pos.x = rightWall;
+}
+
 // ============================================================
 //  LIFT — психологический хоррор в лифте
 //
@@ -134,6 +141,7 @@ int main() {
                     }
 
                     player.Update();
+                    ClampPlayerToLevelBounds(player, width);
                     camera.Update(player, camera_speed);
 
                     bool levelCompleted = false;
@@ -185,6 +193,7 @@ int main() {
                                     case 3: level8.Init(width, height); break;
                                 }
                                 player.pos = { width * 0.166f, height * 0.82f };
+                                ClampPlayerToLevelBounds(player, width);
                             }
                         }
 
@@ -234,6 +243,14 @@ int main() {
 
                 if (currentLevel == 0) {
                     level1.DrawTerminalUI(player, assets);
+                }
+
+                if (currentLevel == 1) {
+                    level4.DrawUI(assets);
+                } else if (currentLevel == 2) {
+                    level6.DrawUI(assets);
+                } else if (currentLevel == 3) {
+                    level8.DrawUI(assets);
                 }
 
                 if (transitState != TRANSIT_NONE) {

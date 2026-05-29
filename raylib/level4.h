@@ -9,7 +9,8 @@ struct Level4 {
 
     Vector2 doorPos;
     float notePosX;
-    bool noteActive;
+    bool noteNear;
+    bool noteOpen;
 
     float floorY;
     float tableH;
@@ -46,7 +47,8 @@ struct Level4 {
     void Init(int screenW, int screenH) {
         completed = false;
         badEnding = false;
-        noteActive = false;
+        noteNear = false;
+        noteOpen = false;
         state = WAITING;
         stateTimer = 0.0f;
         waveSeen = false;
@@ -56,22 +58,36 @@ struct Level4 {
         quizHovered = -1;
 
         floorY = screenH * 0.82f;
-        tableH = 65.0f;
+        tableH = 46.0f;
 
         doorPos = { screenW * 0.88f, floorY };
         notePosX = screenW * 0.06f;
 
-        boxPos          = { screenW * 0.22f, floorY - tableH - 25 };
-        cameraPos       = { screenW * 0.44f, floorY - tableH - 25 };
-        gunPos          = { screenW * 0.65f, floorY - tableH - 15 };
-        screenPos       = { screenW * 0.65f, floorY - 155.0f };
+        boxPos          = { screenW * 0.24f, floorY - tableH - 18 };
+        cameraPos       = { screenW * 0.43f, floorY - tableH - 18 };
+        gunPos          = { screenW * 0.64f, floorY - tableH - 12 };
+        screenPos       = { screenW * 0.64f, floorY - 142.0f };
         btnWavePos      = { screenW * 0.57f, floorY - 35.0f };
         btnParticlePos  = { screenW * 0.73f, floorY - 35.0f };
     }
 
     void Update(Player& player) {
         float dt = GetFrameTime();
-        noteActive = player.is_in_area(notePosX);
+        if (noteOpen) {
+            player.stop_brother();
+            if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_BACKSPACE)) {
+                noteOpen = false;
+                player.can_move = true;
+            }
+            return;
+        }
+
+        noteNear = player.is_in_area(notePosX);
+        if (noteNear && IsKeyPressed(KEY_E)) {
+            noteOpen = true;
+            player.stop_brother();
+            return;
+        }
 
         if (state == WAITING) {
             if (player.is_in_area(boxPos.x) && IsKeyPressed(KEY_E)) {
@@ -122,9 +138,9 @@ struct Level4 {
 
         if (state == QUIZ) {
             quizHovered = -1;
-            float quizBaseX = GetScreenWidth() * 0.35f;
+            float quizBaseX = GetScreenWidth() * 0.31f;
             for (int i = 0; i < 3; i++) {
-                float bx = quizBaseX + i * 150.0f;
+                float bx = quizBaseX + i * 165.0f;
                 if (player.is_in_area(bx)) {
                     quizHovered = i;
                     if (IsKeyPressed(KEY_E)) {
@@ -229,13 +245,16 @@ struct Level4 {
                300, (int)(floorY - 168), 14, GRAY);
 
         // --- Записка на столе ---
-        DrawLabTable(notePosX + 25, surfaceY, 60, 10);
-        DrawTexture(assets.tex_note, (int)notePosX, (int)(surfaceY - 18), WHITE);
+        DrawLabTable(notePosX + 15, surfaceY, 42, 8);
+        DrawTextureEx(assets.tex_note, { notePosX, surfaceY - 16.0f }, 0.0f, 0.45f, WHITE);
+        if (noteNear && !noteOpen) {
+            RuText(assets.font, u8"[E] прочитать", (int)(notePosX - 8), (int)(floorY + 6), 11, YELLOW);
+        }
 
         // --- Коробка Шрёдингера на столе ---
-        DrawLabTable(boxPos.x, surfaceY, 100, 12);
+        DrawLabTable(boxPos.x, surfaceY, 76, 10);
 
-        float bxW = 55, bxH = 45;
+        float bxW = 46, bxH = 36;
         float bxX = boxPos.x - bxW / 2;
         float bxY = surfaceY - bxH;
         DrawRectangle((int)bxX, (int)bxY, (int)bxW, (int)bxH, Color{ 50, 40, 60, 255 });
@@ -243,8 +262,8 @@ struct Level4 {
         RuText(assets.font, "?", (int)(boxPos.x - 7), (int)(bxY + 10), 22, PURPLE);
 
         if (state == WAITING || state == BOX_OPEN) {
-            RuText(assets.font, u8"\u041a\u041e\u0420\u041e\u0411\u041a\u0410 \u0428\u0420\u0401\u0414\u0418\u041d\u0413\u0415\u0420\u0410",
-                   (int)(boxPos.x - 78), (int)(bxY - 18), 12, PURPLE);
+            RuText(assets.font, u8"коробка Шрёдингера",
+                   (int)(boxPos.x - 56), (int)(bxY - 18), 11, PURPLE);
         }
 
         if (state == WAITING && player.is_in_area(boxPos.x)) {
@@ -266,21 +285,21 @@ struct Level4 {
         }
 
         // --- Z-камера на столе ---
-        DrawLabTable(cameraPos.x, surfaceY, 120, 14);
+        DrawLabTable(cameraPos.x, surfaceY, 86, 10);
 
         float camDrawY = surfaceY - 45;
         DrawGlow({ cameraPos.x, camDrawY + 18 }, 35.0f, { 100, 255, 100, 80 }, { 50, 200, 50, 0 }, 6);
-        DrawRectangle((int)(cameraPos.x - 30), (int)camDrawY, 60, 40, Color{ 30, 50, 30, 255 });
-        DrawRectangleLines((int)(cameraPos.x - 30), (int)camDrawY, 60, 40, GREEN);
+        DrawRectangle((int)(cameraPos.x - 24), (int)camDrawY, 48, 34, Color{ 30, 50, 30, 255 });
+        DrawRectangleLines((int)(cameraPos.x - 24), (int)camDrawY, 48, 34, GREEN);
         RuText(assets.font, "Z", (int)(cameraPos.x - 5), (int)(camDrawY + 8), 20, GREEN);
-        RuText(assets.font, u8"Z-\u043a\u0430\u043c\u0435\u0440\u0430",
-               (int)(cameraPos.x - 35), (int)(camDrawY - 15), 12, Color{ 100, 255, 100, 180 });
+        RuText(assets.font, u8"Z-камера: источник облучения",
+               (int)(cameraPos.x - 72), (int)(camDrawY - 15), 11, Color{ 100, 255, 100, 180 });
 
         // Кабель: камера → пушка
         DrawLineEx({ cameraPos.x + 30, surfaceY - 3 }, { gunPos.x - 30, surfaceY - 3 }, 2.0f, Color{ 60, 100, 60, 120 });
 
         // --- Экспериментальный стол (пушка + кнопки) ---
-        DrawLabTable(gunPos.x, surfaceY, 180, 14);
+        DrawLabTable(gunPos.x, surfaceY, 138, 10);
 
         // Пушка на столе
         float gunDrawY = surfaceY - 30;
@@ -345,68 +364,37 @@ struct Level4 {
 
         // Викторина
         if (state == QUIZ) {
-            float qx = scrW * 0.35f;
-            float qy = floorY - 105.0f;
+            float qx = scrW * 0.31f;
+            float qy = floorY - 116.0f;
 
-            const char* qText = u8"\u0427\u0442\u043e \u0432\u044b \u043d\u0430\u0431\u043b\u044e\u0434\u0430\u043b\u0438? \u042d\u043b\u0435\u043a\u0442\u0440\u043e\u043d \u2014 \u044d\u0442\u043e...";
-            int tw = RuMeasure(assets.font, qText, 15);
-            float qOX = player.pos.x - tw / 2 - 8;
-            DrawRectangle((int)qOX, (int)(qy - 42), tw + 16, 32, Fade(BLACK, 0.9f));
-            RuText(assets.font, qText, (int)(qOX + 8), (int)(qy - 36), 15, RAYWHITE);
+            DrawRectangle((int)(qx - 18), (int)(qy - 62), 520, 116, Fade(BLACK, 0.86f));
+            DrawRectangleLines((int)(qx - 18), (int)(qy - 62), 520, 116, Color{ 120, 180, 255, 255 });
+            RuText(assets.font, u8"Двухщелевой опыт: без детектора видна волна,", (int)(qx - 4), (int)(qy - 52), 14, RAYWHITE);
+            RuText(assets.font, u8"с детектором — частицы. Что такое электрон?", (int)(qx - 4), (int)(qy - 34), 14, RAYWHITE);
 
             const char* options[3] = {
-                u8"\u0427\u0430\u0441\u0442\u0438\u0446\u0430",
-                u8"\u0412\u043e\u043b\u043d\u0430",
-                u8"\u0418 \u0442\u043e \u0438 \u0434\u0440\u0443\u0433\u043e\u0435"
+                u8"Частица",
+                u8"Волна",
+                u8"И то и другое"
             };
             Color optColors[3] = { RED, GREEN, GOLD };
 
             for (int i = 0; i < 3; i++) {
-                float bx = qx + i * 150.0f;
+                float bx = qx + i * 165.0f;
                 bool hovered = (quizHovered == i);
                 Color bg = hovered ? Fade(optColors[i], 0.3f) : Fade(BLACK, 0.7f);
-                DrawRectangle((int)bx, (int)qy, 140, 34, bg);
-                DrawRectangleLines((int)bx, (int)qy, 140, 34, optColors[i]);
-                RuText(assets.font, options[i], (int)(bx + 8), (int)(qy + 8), 14, optColors[i]);
+                DrawRectangle((int)bx, (int)qy, 152, 36, bg);
+                DrawRectangleLines((int)bx, (int)qy, 152, 36, optColors[i]);
+                RuText(assets.font, options[i], (int)(bx + 10), (int)(qy + 9), 14, optColors[i]);
                 if (hovered) {
-                    RuText(assets.font, u8"[E]", (int)(bx + 55), (int)(qy - 16), 12, YELLOW);
+                    RuText(assets.font, u8"[E]", (int)(bx + 62), (int)(qy - 16), 12, YELLOW);
                 }
             }
 
             if (quizAnswer != -1 && quizAnswer != 2) {
-                RuText(assets.font, u8"\u0422\u044b \u0436\u0435 \u0441\u0430\u043c \u0432\u0441\u0451 \u0432\u0438\u0434\u0435\u043b. \u041d\u0435 \u0442\u0443\u043f\u0438.",
-                       (int)(player.pos.x - 90), (int)(qy + 46), 14, RED);
+                RuText(assets.font, u8"В опыте были оба поведения — выбери точнее.",
+                       (int)(qx + 72), (int)(qy + 43), 13, RED);
                 quizAnswer = -1;
-            }
-        }
-
-        // Записка
-        if (noteActive) {
-            float nx = player.pos.x - 150;
-            float ny = floorY - 215;
-            DrawRectangle((int)nx, (int)ny, 320, 200, Fade(BLACK, 0.92f));
-            DrawRectangleLines((int)nx, (int)ny, 320, 200, GOLD);
-
-            RuText(assets.font, u8"--- \u0417\u0410\u041f\u0418\u0421\u041a\u0410 #7 ---", (int)(nx + 12), (int)(ny + 12), 20, GOLD);
-
-            float glitch = sinf(GetTime() * 7.0f);
-            Color textColor = (glitch > 0.9f)
-                ? Color{ 0, 255, 0, 255 } : RAYWHITE;
-
-            RuText(assets.font,
-                   u8"\u041e\u0431\u044a\u0435\u043a\u0442 \u0414.\u041a. \u041d\u0430\u0434\u0435\u043b \u0445\u0430\u043b\u0430\u0442 \u0438\u0437 \u0448\u043a\u0430\u0444\u0447\u0438\u043a\u0430 B-7. \u0417\u0430\u0442\u0435\u043c \u2014 \u043e\u0431\u043b\u0443\u0447\u0435\u043d\u0438\u0435.",
-                   (int)(nx + 12), (int)(ny + 45), 14, textColor);
-            RuText(assets.font,
-                   u8"\u041a\u043e\u043d\u0444\u0430\u0431\u0443\u043b\u044f\u0446\u0438\u044f \u043f\u043e\u043b\u043d\u0430\u044f. \u041b\u0438\u0447\u043d\u043e\u0441\u0442\u044c \u0432\u044b\u0442\u0435\u0441\u043d\u0435\u043d\u0430.",
-                   (int)(nx + 12), (int)(ny + 68), 14, textColor);
-            RuText(assets.font,
-                   u8"\u0421\u0447\u0438\u0442\u0430\u0435\u0442 \u0441\u0435\u0431\u044f \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u043e\u043c. \u041d\u0435 \u0441\u043f\u043e\u0440\u0438\u0442\u044c.",
-                   (int)(nx + 12), (int)(ny + 91), 14, textColor);
-
-            if (glitch > 0.8f) {
-                RuText(assets.font,
-                       u8"\u041e\u041d \u041d\u0415 \u0421\u041e\u0422\u0420\u0423\u0414\u041d\u0418\u041a \u041e\u041d \u041d\u0415 \u0421\u041e\u0422\u0420\u0423\u0414\u041d\u0418\u041a",
-                       (int)(nx + 12), (int)(ny + 125), 16, Color{ 255, 0, 80, 200 });
             }
         }
 
@@ -423,4 +411,36 @@ struct Level4 {
 
         player.DrawSprite(assets);
     }
+
+    void DrawUI(Assets& assets) {
+        if (!noteOpen) return;
+
+        int scrW = GetScreenWidth();
+        int scrH = GetScreenHeight();
+        float panelW = 520.0f;
+        float panelH = 300.0f;
+        float nx = scrW / 2.0f - panelW / 2.0f;
+        float ny = scrH / 2.0f - panelH / 2.0f;
+        DrawRectangle((int)nx, (int)ny, (int)panelW, (int)panelH, Fade(BLACK, 0.92f));
+        DrawRectangleLines((int)nx, (int)ny, (int)panelW, (int)panelH, GOLD);
+
+        RuText(assets.font, u8"--- ЗАПИСКА #7 ---", (int)(nx + 24), (int)(ny + 22), 24, GOLD);
+
+        float glitch = sinf(GetTime() * 7.0f);
+        Color textColor = (glitch > 0.9f)
+            ? Color{ 0, 255, 0, 255 } : RAYWHITE;
+
+        RuText(assets.font, u8"Коробка слева — тест наблюдения:", (int)(nx + 24), (int)(ny + 72), 18, textColor);
+        RuText(assets.font, u8"пока её не открыть, кот одновременно", (int)(nx + 24), (int)(ny + 102), 18, textColor);
+        RuText(assets.font, u8"жив и мёртв. Z-камера рядом дала дозу,", (int)(nx + 24), (int)(ny + 132), 18, textColor);
+        RuText(assets.font, u8"из-за которой память подменяет личность", (int)(nx + 24), (int)(ny + 162), 18, textColor);
+        RuText(assets.font, u8"владельца халата.", (int)(nx + 24), (int)(ny + 192), 18, textColor);
+
+        if (glitch > 0.8f) {
+            RuText(assets.font, u8"ОН НЕ СОТРУДНИК",
+                   (int)(nx + 24), (int)(ny + 224), 20, Color{ 255, 0, 80, 200 });
+        }
+        RuText(assets.font, u8"[E] закрыть", (int)(nx + 205), (int)(ny + 262), 15, GRAY);
+    }
+
 };
