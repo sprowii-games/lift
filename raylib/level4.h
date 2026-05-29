@@ -246,7 +246,7 @@ struct Level4 {
 
         // --- Записка на столе ---
         DrawLabTable(notePosX + 15, surfaceY, 42, 8);
-        DrawTextureEx(assets.tex_note, { notePosX, surfaceY - 16.0f }, 0.0f, 0.45f, WHITE);
+        DrawTextureEx(assets.tex_note, { notePosX + 10.0f, surfaceY - 5.0f }, 0.0f, 0.08f, WHITE);
         if (noteNear && !noteOpen) {
             RuText(assets.font, u8"[E] прочитать", (int)(notePosX - 8), (int)(floorY + 6), 11, YELLOW);
         }
@@ -417,28 +417,28 @@ struct Level4 {
 
         int scrW = GetScreenWidth();
         int scrH = GetScreenHeight();
-        float nx = scrW / 2.0f - 145.0f;
-        float ny = scrH / 2.0f - 92.0f;
-        DrawRectangle((int)nx, (int)ny, 290, 175, Fade(BLACK, 0.92f));
-        DrawRectangleLines((int)nx, (int)ny, 290, 175, GOLD);
+        float nx = scrW / 2.0f - 320.0f;
+        float ny = scrH / 2.0f - 190.0f;
+        DrawRectangle((int)nx, (int)ny, 640, 380, Fade(BLACK, 0.92f));
+        DrawRectangleLines((int)nx, (int)ny, 640, 380, GOLD);
 
-        RuText(assets.font, u8"--- ЗАПИСКА #7 ---", (int)(nx + 12), (int)(ny + 12), 18, GOLD);
+        RuText(assets.font, u8"--- ЗАПИСКА #7 ---", (int)(nx + 35), (int)(ny + 30), 24, GOLD);
 
         float glitch = sinf(GetTime() * 7.0f);
         Color textColor = (glitch > 0.9f)
             ? Color{ 0, 255, 0, 255 } : RAYWHITE;
 
-        RuText(assets.font, u8"Коробка слева — тест наблюдения:", (int)(nx + 12), (int)(ny + 42), 12, textColor);
-        RuText(assets.font, u8"пока её не открыть, кот сразу", (int)(nx + 12), (int)(ny + 59), 12, textColor);
-        RuText(assets.font, u8"жив и мёртв. Z-камера рядом", (int)(nx + 12), (int)(ny + 76), 12, textColor);
-        RuText(assets.font, u8"дала дозу, из-за которой память", (int)(nx + 12), (int)(ny + 93), 12, textColor);
-        RuText(assets.font, u8"подменяет личность владельца халата.", (int)(nx + 12), (int)(ny + 110), 12, textColor);
+        RuText(assets.font, u8"Коробка слева — тест наблюдения:", (int)(nx + 35), (int)(ny + 85), 18, textColor);
+        RuText(assets.font, u8"пока её не открыть, кот сразу", (int)(nx + 35), (int)(ny + 120), 18, textColor);
+        RuText(assets.font, u8"жив и мёртв. Z-камера рядом", (int)(nx + 35), (int)(ny + 155), 18, textColor);
+        RuText(assets.font, u8"дала дозу, из-за которой память", (int)(nx + 35), (int)(ny + 190), 18, textColor);
+        RuText(assets.font, u8"подменяет личность владельца халата.", (int)(nx + 35), (int)(ny + 225), 18, textColor);
 
         if (glitch > 0.8f) {
             RuText(assets.font, u8"ОН НЕ СОТРУДНИК",
-                   (int)(nx + 12), (int)(ny + 128), 13, Color{ 255, 0, 80, 200 });
+                   (int)(nx + 35), (int)(ny + 270), 20, Color{ 255, 0, 80, 200 });
         }
-        RuText(assets.font, u8"[E] закрыть", (int)(nx + 102), (int)(ny + 150), 11, GRAY);
+        RuText(assets.font, u8"[E] закрыть", (int)(nx + 260), (int)(ny + 325), 15, GRAY);
     }
 
 };

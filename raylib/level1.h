@@ -58,7 +58,7 @@ struct Level1 {
         terminalScale = 0.2f;
         escHoldTimer = 0.0f;
 
-        doorPos = { screenW * 0.88f, screenH * 0.83f };
+        doorPos = { screenW * 0.88f, screenH * 0.84f };
         terminalPos = { screenW * 0.5f, screenH * 0.74f };
         terminalCenterX = screenW * 0.5f;
         notePosX = screenW * 0.08f;

@@ -215,7 +215,7 @@ struct Level8 {
         }
 
         // --- записка на бетоне ---
-        DrawTextureEx(assets.tex_note, { notePosX, scrH * 0.76f }, 0.0f, 0.45f, WHITE);
+        DrawTextureEx(assets.tex_note, { notePosX, scrH * 0.785f }, 0.0f, 0.08f, WHITE);
         if (noteNear && !choiceMade && !noteOpen) {
             RuText(assets.font, u8"[E] прочитать", (int)(notePosX - 8), (int)(scrH * 0.84f), 12, YELLOW);
         }
@@ -249,19 +249,19 @@ struct Level8 {
 
         int scrW = GetScreenWidth();
         int scrH = GetScreenHeight();
-        int nx = scrW / 2 - 280;
-        int ny = scrH / 2 - 170;
-        DrawRectangle(nx, ny, 560, 340, Fade(BLACK, 0.94f));
-        DrawRectangleLines(nx, ny, 560, 340, GOLD);
+        int nx = scrW / 2 - 320;
+        int ny = scrH / 2 - 190;
+        DrawRectangle(nx, ny, 640, 380, Fade(BLACK, 0.94f));
+        DrawRectangleLines(nx, ny, 640, 380, GOLD);
 
-        RuText(assets.font, u8"--- ЗАКЛЮЧИТЕЛЬНЫЙ ОТЧЁТ ---", nx + 24, ny + 20, 22, GOLD);
-        RuText(assets.font, u8"Объект №12 вышел на крышу в 03:17.", nx + 24, ny + 62, 17, RAYWHITE);
-        RuText(assets.font, u8"Халат из ячейки B-7 закрепил ложную", nx + 24, ny + 91, 17, RAYWHITE);
-        RuText(assets.font, u8"личность: «сотрудник комплекса».", nx + 24, ny + 119, 17, RAYWHITE);
-        RuText(assets.font, u8"Доза Z-облучения: критическая.", nx + 24, ny + 156, 17, RED);
-        RuText(assets.font, u8"Объект — НЕ СОТРУДНИК. Он заблудился.", nx + 24, ny + 196, 19, RAYWHITE);
-        RuText(assets.font, u8"Рюкзак — реальность. Вертолёт — симптом.", nx + 24, ny + 232, 17, YELLOW);
-        RuText(assets.font, u8"[E] закрыть", nx + 230, ny + 292, 13, GRAY);
+        RuText(assets.font, u8"--- ЗАКЛЮЧИТЕЛЬНЫЙ ОТЧЁТ ---", nx + 35, ny + 30, 24, GOLD);
+        RuText(assets.font, u8"Объект №12 вышел на крышу в 03:17.", nx + 35, ny + 85, 18, RAYWHITE);
+        RuText(assets.font, u8"Халат из ячейки B-7 закрепил ложную", nx + 35, ny + 120, 18, RAYWHITE);
+        RuText(assets.font, u8"личность: «сотрудник комплекса».", nx + 35, ny + 155, 18, RAYWHITE);
+        RuText(assets.font, u8"Доза Z-облучения: критическая.", nx + 35, ny + 195, 18, RED);
+        RuText(assets.font, u8"Объект — НЕ СОТРУДНИК. Он заблудился.", nx + 35, ny + 235, 20, RAYWHITE);
+        RuText(assets.font, u8"Рюкзак — реальность. Вертолёт — симптом.", nx + 35, ny + 275, 18, YELLOW);
+        RuText(assets.font, u8"[E] закрыть", nx + 250, ny + 330, 15, GRAY);
     }
 
 };

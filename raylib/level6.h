@@ -259,7 +259,7 @@ struct Level6 {
 
         // === Записка на столе ===
         DrawLabTable(notePosX + 14, surfaceY, 40, 7);
-        DrawTextureEx(assets.tex_note, { notePosX, surfaceY - 15.0f }, 0.0f, 0.45f, WHITE);
+        DrawTextureEx(assets.tex_note, { notePosX + 10.0f, surfaceY - 5.0f }, 0.0f, 0.08f, WHITE);
         if (noteNear && !noteOpen) {
             RuText(assets.font, u8"[E] \u041f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c",
                    (int)(notePosX - 10), (int)(floorY + 6), 11, YELLOW);
@@ -368,22 +368,22 @@ struct Level6 {
 
         int scrW = GetScreenWidth();
         int scrH = GetScreenHeight();
-        float nx = scrW / 2.0f - 112.0f;
-        float ny = scrH / 2.0f - 71.0f;
-        DrawRectangle((int)nx, (int)ny, 224, 142, Fade(BLACK, 0.92f));
-        DrawRectangleLines((int)nx, (int)ny, 224, 142, GOLD);
+        float nx = scrW / 2.0f - 320.0f;
+        float ny = scrH / 2.0f - 180.0f;
+        DrawRectangle((int)nx, (int)ny, 640, 360, Fade(BLACK, 0.92f));
+        DrawRectangleLines((int)nx, (int)ny, 640, 360, GOLD);
         RuText(assets.font, u8"--- ЗАПИСКА ---",
-               (int)(nx + 8), (int)(ny + 8), 16, GOLD);
+               (int)(nx + 35), (int)(ny + 30), 24, GOLD);
         RuText(assets.font, u8"Мне надо наверх. Прямо сейчас.",
-               (int)(nx + 8), (int)(ny + 35), 12, RAYWHITE);
+               (int)(nx + 35), (int)(ny + 85), 18, RAYWHITE);
         RuText(assets.font, u8"Тут дышать почти нечем.",
-               (int)(nx + 8), (int)(ny + 55), 12, RAYWHITE);
+               (int)(nx + 35), (int)(ny + 120), 18, RAYWHITE);
         RuText(assets.font, u8"DFS уходит в тупики. BFS сразу",
-               (int)(nx + 8), (int)(ny + 75), 12, YELLOW);
+               (int)(nx + 35), (int)(ny + 155), 18, YELLOW);
         RuText(assets.font, u8"ищет кратчайший маршрут к люку.",
-               (int)(nx + 8), (int)(ny + 95), 12, YELLOW);
+               (int)(nx + 35), (int)(ny + 190), 18, YELLOW);
         RuText(assets.font, u8"[E] Закрыть",
-               (int)(nx + 72), (int)(ny + 118), 11, GRAY);
+               (int)(nx + 250), (int)(ny + 295), 15, GRAY);
     }
 
 };
