@@ -25,18 +25,14 @@ struct Level6 {
     int dfsPath[165][2];
     int dfsPathLen;
 
-    enum State { WAITING, ANIMATING, SUCCESS, FAIL, CODE_LOCK };
+    enum State { WAITING, ANIMATING, SUCCESS, FAIL };
     State state;
     float stateTimer;
 
     int chosenAlgo;
     int animStep;
     float animTimer;
-    int codeValue;
     int hoveredBtn;
-
-    bool codeWrong;
-    float codeWrongTimer;
 
     void InitMaze() {
         int m[11][15] = {
@@ -147,10 +143,7 @@ struct Level6 {
         chosenAlgo = -1;
         animStep = 0;
         animTimer = 0.0f;
-        codeValue = 0;
         hoveredBtn = -1;
-        codeWrong = false;
-        codeWrongTimer = 0.0f;
 
         floorY = screenH * 0.82f;
         doorPos = { screenW * 0.85f, floorY };
@@ -217,27 +210,8 @@ struct Level6 {
             if (stateTimer > 3.0f) state = WAITING;
         }
         else if (state == SUCCESS) {
-            stateTimer += dt;
-            if (stateTimer > 2.0f) {
-                state = CODE_LOCK;
-                codeValue = 0;
-                codeWrong = false;
-            }
-        }
-        else if (state == CODE_LOCK) {
-            if (IsKeyPressed(KEY_A) && codeValue > 0) codeValue--;
-            if (IsKeyPressed(KEY_D) && codeValue < 99) codeValue++;
-            if (IsKeyPressed(KEY_E)) {
-                if (codeValue == bfsPathLen) {
-                    completed = true;
-                } else {
-                    codeWrong = true;
-                    codeWrongTimer = 1.5f;
-                }
-            }
-            if (codeWrong) {
-                codeWrongTimer -= dt;
-                if (codeWrongTimer <= 0.0f) codeWrong = false;
+            if (player.is_in_area(doorPos.x) && IsKeyPressed(KEY_E)) {
+                completed = true;
             }
         }
     }
@@ -283,8 +257,8 @@ struct Level6 {
         float surfaceY = floorY - 50;
 
         // === Записка на столе ===
-        DrawLabTable(notePosX + 25, surfaceY, 55, 8);
-        DrawTexture(assets.tex_note, (int)notePosX, (int)(surfaceY - 16), WHITE);
+        DrawLabTable(notePosX + 14, surfaceY, 40, 7);
+        DrawTextureEx(assets.tex_note, { notePosX, surfaceY - 15.0f }, 0.0f, 0.45f, WHITE);
         if (noteNear && !noteOpen) {
             RuText(assets.font, u8"[E] \u041f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c",
                    (int)(notePosX - 10), (int)(floorY + 6), 11, YELLOW);
@@ -292,20 +266,22 @@ struct Level6 {
 
         // === Оверлей записки ===
         if (noteOpen) {
-            float nx = player.pos.x - 120;
-            float ny = floorY - 185;
-            DrawRectangle((int)nx, (int)ny, 240, 160, Fade(BLACK, 0.92f));
-            DrawRectangleLines((int)nx, (int)ny, 240, 160, GOLD);
+            float nx = player.pos.x - 112;
+            float ny = floorY - 175;
+            DrawRectangle((int)nx, (int)ny, 224, 142, Fade(BLACK, 0.92f));
+            DrawRectangleLines((int)nx, (int)ny, 224, 142, GOLD);
             RuText(assets.font, u8"--- \u0417\u0410\u041f\u0418\u0421\u041a\u0410 ---",
                    (int)(nx + 8), (int)(ny + 8), 16, GOLD);
             RuText(assets.font, u8"\u041c\u043d\u0435 \u043d\u0430\u0434\u043e \u043d\u0430\u0432\u0435\u0440\u0445. \u041f\u0440\u044f\u043c\u043e \u0441\u0435\u0439\u0447\u0430\u0441.",
                    (int)(nx + 8), (int)(ny + 35), 12, RAYWHITE);
             RuText(assets.font, u8"\u0422\u0443\u0442 \u0434\u044b\u0448\u0430\u0442\u044c \u043f\u043e\u0447\u0442\u0438 \u043d\u0435\u0447\u0435\u043c.",
                    (int)(nx + 8), (int)(ny + 55), 12, RAYWHITE);
-            RuText(assets.font, u8"\u041a\u0440\u0430\u0442\u0447\u0430\u0439\u0448\u0438\u0439 \u043c\u0430\u0440\u0448\u0440\u0443\u0442 \u2014 \u0438\u043d\u0430\u0447\u0435 \u043d\u0435 \u0432\u044b\u0432\u0435\u0437\u0443.",
+            RuText(assets.font, u8"DFS уходит в тупики. BFS сразу",
                    (int)(nx + 8), (int)(ny + 75), 12, YELLOW);
-            RuText(assets.font, u8"[E] \u0417\u0430\u043a\u0440\u044b\u0442\u044c",
-                   (int)(nx + 70), (int)(ny + 130), 11, GRAY);
+            RuText(assets.font, u8"ищет кратчайший маршрут к люку.",
+                   (int)(nx + 8), (int)(ny + 95), 12, YELLOW);
+            RuText(assets.font, u8"[E] Закрыть",
+                   (int)(nx + 72), (int)(ny + 118), 11, GRAY);
         }
 
         // === Терминальный стол ===
@@ -340,7 +316,7 @@ struct Level6 {
         DrawRectangle((int)(mazeOffX + 13 * cellSize), (int)(mazeOffY + 9 * cellSize), (int)cellSize, (int)cellSize, RED);
         RuText(assets.font, "F", (int)(mazeOffX + 13 * cellSize + 2), (int)(mazeOffY + 9 * cellSize), 9, WHITE);
 
-        if (state == ANIMATING || state == SUCCESS || state == FAIL || state == CODE_LOCK) {
+        if (state == ANIMATING || state == SUCCESS || state == FAIL) {
             int (*path)[2] = (chosenAlgo==1) ? bfsPath : dfsPath;
             int pathLen = (chosenAlgo==1) ? bfsPathLen : dfsPathLen;
             int steps = (state==ANIMATING) ? animStep : pathLen;
@@ -386,34 +362,19 @@ struct Level6 {
             RuText(assets.font, u8"\u0414\u043b\u0438\u043d\u043d\u044b\u0439 \u043f\u0443\u0442\u044c. \u0412\u043e\u0437\u0434\u0443\u0445 \u043a\u043e\u043d\u0447\u0438\u043b\u0441\u044f \u0431\u044b \u043d\u0430 \u043f\u043e\u043b\u043f\u0443\u0442\u0438.",
                    (int)(termX - 100), (int)(floorY + 6), 11, RED);
         }
-        if (state == SUCCESS || state == CODE_LOCK) {
-            RuText(assets.font, TextFormat("\u041a\u0440\u0430\u0442\u0447\u0430\u0439\u0448\u0438\u0439 \u043f\u0443\u0442\u044c: %d \u043a\u043b\u0435\u0442\u043e\u043a", bfsPathLen),
-                   (int)(termX - 65), (int)(floorY + 6), 11, GREEN);
-        }
-
-        // Кодовый замок
-        if (state == CODE_LOCK) {
-            float clX = player.pos.x - 70;
-            float clY = floorY - 100;
-            DrawRectangle((int)clX, (int)clY, 140, 70, Fade(BLACK, 0.9f));
-            DrawRectangleLines((int)clX, (int)clY, 140, 70, YELLOW);
-            RuText(assets.font, u8"\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0434\u043b\u0438\u043d\u0443 \u043f\u0443\u0442\u0438:",
-                   (int)(clX + 6), (int)(clY + 6), 11, RAYWHITE);
-            RuText(assets.font, TextFormat("[ %d ]", codeValue),
-                   (int)(clX + 45), (int)(clY + 24), 22, YELLOW);
-            RuText(assets.font, u8"A/D \u043c\u0435\u043d\u044f\u0442\u044c | E \u043e\u043a",
-                   (int)(clX + 12), (int)(clY + 52), 10, GRAY);
-            if (codeWrong) {
-                RuText(assets.font, u8"\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043a\u043e\u0434!",
-                       (int)(clX + 25), (int)(clY + 72), 11, RED);
-            }
+        if (state == SUCCESS) {
+            RuText(assets.font, u8"BFS нашёл кратчайший маршрут. Лифт открыт — иди к двери.",
+                   (int)(termX - 145), (int)(floorY + 6), 11, GREEN);
         }
 
         // Лифт
         float doorScale = 0.2f;
         int doorH = (int)(assets.tex_elevator_closed.height * doorScale);
-        if (state == SUCCESS || state == CODE_LOCK) {
+        if (state == SUCCESS) {
             DrawTextureEx(assets.tex_elevator_opened, {doorPos.x, doorPos.y - doorH}, 0.0f, doorScale, WHITE);
+            if (player.is_in_area(doorPos.x)) {
+                RuText(assets.font, u8"[E] В ЛИФТ", (int)doorPos.x - 18, (int)(doorPos.y - doorH - 16), 12, GREEN);
+            }
         } else {
             DrawTextureEx(assets.tex_elevator_closed, {doorPos.x, doorPos.y - doorH}, 0.0f, doorScale, WHITE);
         }
