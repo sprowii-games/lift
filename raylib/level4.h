@@ -74,6 +74,7 @@ struct Level4 {
     void Update(Player& player) {
         float dt = GetFrameTime();
         if (noteOpen) {
+            player.stop_brother();
             if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_BACKSPACE)) {
                 noteOpen = false;
                 player.can_move = true;
@@ -84,7 +85,7 @@ struct Level4 {
         noteNear = player.is_in_area(notePosX);
         if (noteNear && IsKeyPressed(KEY_E)) {
             noteOpen = true;
-            player.can_move = false;
+            player.stop_brother();
             return;
         }
 
@@ -397,32 +398,6 @@ struct Level4 {
             }
         }
 
-        // Записка
-        if (noteOpen) {
-            float nx = player.pos.x - 135;
-            float ny = floorY - 200;
-            DrawRectangle((int)nx, (int)ny, 290, 175, Fade(BLACK, 0.92f));
-            DrawRectangleLines((int)nx, (int)ny, 290, 175, GOLD);
-
-            RuText(assets.font, u8"--- ЗАПИСКА #7 ---", (int)(nx + 12), (int)(ny + 12), 18, GOLD);
-
-            float glitch = sinf(GetTime() * 7.0f);
-            Color textColor = (glitch > 0.9f)
-                ? Color{ 0, 255, 0, 255 } : RAYWHITE;
-
-            RuText(assets.font, u8"Коробка слева — тест наблюдения:", (int)(nx + 12), (int)(ny + 42), 12, textColor);
-            RuText(assets.font, u8"пока её не открыть, кот сразу", (int)(nx + 12), (int)(ny + 59), 12, textColor);
-            RuText(assets.font, u8"жив и мёртв. Z-камера рядом", (int)(nx + 12), (int)(ny + 76), 12, textColor);
-            RuText(assets.font, u8"дала дозу, из-за которой память", (int)(nx + 12), (int)(ny + 93), 12, textColor);
-            RuText(assets.font, u8"подменяет личность владельца халата.", (int)(nx + 12), (int)(ny + 110), 12, textColor);
-
-            if (glitch > 0.8f) {
-                RuText(assets.font, u8"ОН НЕ СОТРУДНИК",
-                       (int)(nx + 12), (int)(ny + 128), 13, Color{ 255, 0, 80, 200 });
-            }
-            RuText(assets.font, u8"[E] закрыть", (int)(nx + 102), (int)(ny + 150), 11, GRAY);
-        }
-
         // Лифт
         float doorScale = 0.2f;
         int doorH = (int)(assets.tex_elevator_closed.height * doorScale);
@@ -436,4 +411,34 @@ struct Level4 {
 
         player.DrawSprite(assets);
     }
+
+    void DrawUI(Assets& assets) {
+        if (!noteOpen) return;
+
+        int scrW = GetScreenWidth();
+        int scrH = GetScreenHeight();
+        float nx = scrW / 2.0f - 145.0f;
+        float ny = scrH / 2.0f - 92.0f;
+        DrawRectangle((int)nx, (int)ny, 290, 175, Fade(BLACK, 0.92f));
+        DrawRectangleLines((int)nx, (int)ny, 290, 175, GOLD);
+
+        RuText(assets.font, u8"--- ЗАПИСКА #7 ---", (int)(nx + 12), (int)(ny + 12), 18, GOLD);
+
+        float glitch = sinf(GetTime() * 7.0f);
+        Color textColor = (glitch > 0.9f)
+            ? Color{ 0, 255, 0, 255 } : RAYWHITE;
+
+        RuText(assets.font, u8"Коробка слева — тест наблюдения:", (int)(nx + 12), (int)(ny + 42), 12, textColor);
+        RuText(assets.font, u8"пока её не открыть, кот сразу", (int)(nx + 12), (int)(ny + 59), 12, textColor);
+        RuText(assets.font, u8"жив и мёртв. Z-камера рядом", (int)(nx + 12), (int)(ny + 76), 12, textColor);
+        RuText(assets.font, u8"дала дозу, из-за которой память", (int)(nx + 12), (int)(ny + 93), 12, textColor);
+        RuText(assets.font, u8"подменяет личность владельца халата.", (int)(nx + 12), (int)(ny + 110), 12, textColor);
+
+        if (glitch > 0.8f) {
+            RuText(assets.font, u8"ОН НЕ СОТРУДНИК",
+                   (int)(nx + 12), (int)(ny + 128), 13, Color{ 255, 0, 80, 200 });
+        }
+        RuText(assets.font, u8"[E] закрыть", (int)(nx + 102), (int)(ny + 150), 11, GRAY);
+    }
+
 };

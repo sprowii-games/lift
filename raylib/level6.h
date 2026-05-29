@@ -159,6 +159,7 @@ struct Level6 {
         float dt = GetFrameTime();
 
         if (noteOpen) {
+            player.stop_brother();
             if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_BACKSPACE)) {
                 noteOpen = false;
                 player.can_move = true;
@@ -171,7 +172,7 @@ struct Level6 {
         if (state == WAITING) {
             if (noteNear && IsKeyPressed(KEY_E)) {
                 noteOpen = true;
-                player.can_move = false;
+                player.stop_brother();
                 return;
             }
 
@@ -262,26 +263,6 @@ struct Level6 {
         if (noteNear && !noteOpen) {
             RuText(assets.font, u8"[E] \u041f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c",
                    (int)(notePosX - 10), (int)(floorY + 6), 11, YELLOW);
-        }
-
-        // === Оверлей записки ===
-        if (noteOpen) {
-            float nx = player.pos.x - 112;
-            float ny = floorY - 175;
-            DrawRectangle((int)nx, (int)ny, 224, 142, Fade(BLACK, 0.92f));
-            DrawRectangleLines((int)nx, (int)ny, 224, 142, GOLD);
-            RuText(assets.font, u8"--- \u0417\u0410\u041f\u0418\u0421\u041a\u0410 ---",
-                   (int)(nx + 8), (int)(ny + 8), 16, GOLD);
-            RuText(assets.font, u8"\u041c\u043d\u0435 \u043d\u0430\u0434\u043e \u043d\u0430\u0432\u0435\u0440\u0445. \u041f\u0440\u044f\u043c\u043e \u0441\u0435\u0439\u0447\u0430\u0441.",
-                   (int)(nx + 8), (int)(ny + 35), 12, RAYWHITE);
-            RuText(assets.font, u8"\u0422\u0443\u0442 \u0434\u044b\u0448\u0430\u0442\u044c \u043f\u043e\u0447\u0442\u0438 \u043d\u0435\u0447\u0435\u043c.",
-                   (int)(nx + 8), (int)(ny + 55), 12, RAYWHITE);
-            RuText(assets.font, u8"DFS уходит в тупики. BFS сразу",
-                   (int)(nx + 8), (int)(ny + 75), 12, YELLOW);
-            RuText(assets.font, u8"ищет кратчайший маршрут к люку.",
-                   (int)(nx + 8), (int)(ny + 95), 12, YELLOW);
-            RuText(assets.font, u8"[E] Закрыть",
-                   (int)(nx + 72), (int)(ny + 118), 11, GRAY);
         }
 
         // === Терминальный стол ===
@@ -381,4 +362,28 @@ struct Level6 {
 
         player.DrawSprite(assets);
     }
+
+    void DrawUI(Assets& assets) {
+        if (!noteOpen) return;
+
+        int scrW = GetScreenWidth();
+        int scrH = GetScreenHeight();
+        float nx = scrW / 2.0f - 112.0f;
+        float ny = scrH / 2.0f - 71.0f;
+        DrawRectangle((int)nx, (int)ny, 224, 142, Fade(BLACK, 0.92f));
+        DrawRectangleLines((int)nx, (int)ny, 224, 142, GOLD);
+        RuText(assets.font, u8"--- ЗАПИСКА ---",
+               (int)(nx + 8), (int)(ny + 8), 16, GOLD);
+        RuText(assets.font, u8"Мне надо наверх. Прямо сейчас.",
+               (int)(nx + 8), (int)(ny + 35), 12, RAYWHITE);
+        RuText(assets.font, u8"Тут дышать почти нечем.",
+               (int)(nx + 8), (int)(ny + 55), 12, RAYWHITE);
+        RuText(assets.font, u8"DFS уходит в тупики. BFS сразу",
+               (int)(nx + 8), (int)(ny + 75), 12, YELLOW);
+        RuText(assets.font, u8"ищет кратчайший маршрут к люку.",
+               (int)(nx + 8), (int)(ny + 95), 12, YELLOW);
+        RuText(assets.font, u8"[E] Закрыть",
+               (int)(nx + 72), (int)(ny + 118), 11, GRAY);
+    }
+
 };

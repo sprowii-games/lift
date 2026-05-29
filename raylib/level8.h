@@ -39,6 +39,7 @@ struct Level8 {
         hoveredChoice = -1;
 
         if (noteOpen) {
+            player.stop_brother();
             if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_BACKSPACE)) {
                 noteOpen = false;
                 player.can_move = true;
@@ -48,7 +49,7 @@ struct Level8 {
 
         if (!choiceMade && noteNear && IsKeyPressed(KEY_E)) {
             noteOpen = true;
-            player.can_move = false;
+            player.stop_brother();
             return;
         }
 
@@ -111,20 +112,44 @@ struct Level8 {
         DrawCircle(scrW * 0.78f, scrH * 0.13f, 45, Fade({ 15, 20, 40, 255 }, 0.85f));
         DrawGlow({ scrW * 0.78f, scrH * 0.13f }, 80.0f, { 220, 230, 255, 100 }, { 220, 230, 255, 0 }, 8);
 
-        // --- крыша: высокий парапет и бетонная площадка под уменьшенного игрока ---
-        float roofY = scrH * 0.78f;
+        // --- дальний город за краем крыши ---
+        float roofY = scrH * 0.77f;
+        for (int i = 0; i < 12; i++) {
+            int bw = 70 + (i % 3) * 24;
+            int bh = 90 + (i % 5) * 28;
+            int bx = i * 165 - 35;
+            int by = (int)(roofY - 92 - bh);
+            DrawRectangle(bx, by, bw, bh, Color{ 9, 12, 24, 255 });
+            DrawRectangleLines(bx, by, bw, bh, Color{ 24, 28, 45, 255 });
+            for (int wy = by + 16; wy < by + bh - 10; wy += 24) {
+                for (int wx = bx + 12; wx < bx + bw - 10; wx += 22) {
+                    if (((wx + wy + i) % 3) == 0) DrawRectangle(wx, wy, 5, 8, Fade(GOLD, 0.45f));
+                }
+            }
+        }
+
+        // --- крыша: парапет, ограждение и бетонная площадка под уменьшенного игрока ---
         DrawRectangle(0, (int)(roofY - 92), scrW, 56, Color{ 35, 35, 45, 255 });
         DrawRectangle(0, (int)(roofY - 92), scrW, 4, GRAY);
         DrawRectangle(0, (int)(roofY - 36), scrW, 8, Color{ 55, 55, 65, 255 });
-        for (int i = 0; i < 10; i++) {
-            DrawRectangle(i * (scrW / 10), (int)(roofY - 90), 3, 55, Color{ 28, 28, 36, 255 });
+        for (int i = 0; i < 15; i++) {
+            int postX = i * (scrW / 14);
+            DrawRectangle(postX, (int)(roofY - 132), 5, 42, Color{ 80, 82, 95, 255 });
         }
+        DrawRectangle(0, (int)(roofY - 132), scrW, 4, Color{ 95, 96, 110, 255 });
+        DrawRectangle(0, (int)(roofY - 112), scrW, 3, Color{ 75, 76, 90, 255 });
         DrawGlow({ scrW * 0.20f, roofY - 90.0f }, 50.0f, { 255, 60, 60, 120 }, { 255, 60, 60, 0 }, 6);
 
         // --- бетон крыши ---
         float floorY = scrH * 0.82f;
         DrawRectangle(0, (int)(roofY - 28), scrW, (int)(floorY - roofY + 28), Color{ 42, 42, 50, 255 });
         DrawRectangle(0, (int)(floorY - 2), scrW, 5, Color{ 70, 70, 82, 255 });
+        for (int x = -40; x < scrW; x += 160) DrawLineEx({ (float)x, roofY - 24.0f }, { (float)(x + 105), floorY + 28.0f }, 1.0f, Color{ 58, 58, 68, 255 });
+        for (int x = 0; x < scrW; x += 95) DrawRectangle(x, (int)(floorY - 8), 48, 5, Color{ 95, 78, 35, 255 });
+        DrawRectangle((int)(scrW * 0.06f), (int)(roofY - 24), 88, 32, Color{ 32, 34, 42, 255 });
+        DrawRectangleLines((int)(scrW * 0.06f), (int)(roofY - 24), 88, 32, Color{ 85, 88, 105, 255 });
+        DrawRectangle((int)(scrW * 0.82f), (int)(roofY - 20), 120, 28, Color{ 32, 34, 42, 255 });
+        DrawRectangleLines((int)(scrW * 0.82f), (int)(roofY - 20), 120, 28, Color{ 85, 88, 105, 255 });
         if (assets.tex_floor.width > 0) {
             int tileCount = scrW / assets.tex_floor.width + 2;
             for (int i = 0; i < tileCount; i++) {
@@ -195,23 +220,6 @@ struct Level8 {
             RuText(assets.font, u8"[E] прочитать", (int)(notePosX - 8), (int)(scrH * 0.84f), 12, YELLOW);
         }
 
-        // --- текст записки ---
-        if (noteOpen && !choiceMade) {
-            int nx = scrW / 2 - 280;
-            int ny = scrH / 2 - 170;
-            DrawRectangle(nx, ny, 560, 340, Fade(BLACK, 0.94f));
-            DrawRectangleLines(nx, ny, 560, 340, GOLD);
-
-            RuText(assets.font, u8"--- ЗАКЛЮЧИТЕЛЬНЫЙ ОТЧЁТ ---", nx + 24, ny + 20, 22, GOLD);
-            RuText(assets.font, u8"Объект №12 вышел на крышу в 03:17.", nx + 24, ny + 62, 17, RAYWHITE);
-            RuText(assets.font, u8"Халат из ячейки B-7 закрепил ложную", nx + 24, ny + 91, 17, RAYWHITE);
-            RuText(assets.font, u8"личность: «сотрудник комплекса».", nx + 24, ny + 119, 17, RAYWHITE);
-            RuText(assets.font, u8"Доза Z-облучения: критическая.", nx + 24, ny + 156, 17, RED);
-            RuText(assets.font, u8"Объект — НЕ СОТРУДНИК. Он заблудился.", nx + 24, ny + 196, 19, RAYWHITE);
-            RuText(assets.font, u8"Рюкзак — реальность. Вертолёт — симптом.", nx + 24, ny + 232, 17, YELLOW);
-            RuText(assets.font, u8"[E] закрыть", nx + 230, ny + 292, 13, GRAY);
-        }
-
         // --- плохая концовка: белый fade ---
         if (badEnding && fadeAlpha > 0.0f) {
             DrawRectangle(0, 0, scrW, scrH, Fade(RAYWHITE, fadeAlpha));
@@ -235,4 +243,25 @@ struct Level8 {
 
         player.DrawSprite(assets);
     }
+
+    void DrawUI(Assets& assets) {
+        if (!noteOpen || choiceMade) return;
+
+        int scrW = GetScreenWidth();
+        int scrH = GetScreenHeight();
+        int nx = scrW / 2 - 280;
+        int ny = scrH / 2 - 170;
+        DrawRectangle(nx, ny, 560, 340, Fade(BLACK, 0.94f));
+        DrawRectangleLines(nx, ny, 560, 340, GOLD);
+
+        RuText(assets.font, u8"--- ЗАКЛЮЧИТЕЛЬНЫЙ ОТЧЁТ ---", nx + 24, ny + 20, 22, GOLD);
+        RuText(assets.font, u8"Объект №12 вышел на крышу в 03:17.", nx + 24, ny + 62, 17, RAYWHITE);
+        RuText(assets.font, u8"Халат из ячейки B-7 закрепил ложную", nx + 24, ny + 91, 17, RAYWHITE);
+        RuText(assets.font, u8"личность: «сотрудник комплекса».", nx + 24, ny + 119, 17, RAYWHITE);
+        RuText(assets.font, u8"Доза Z-облучения: критическая.", nx + 24, ny + 156, 17, RED);
+        RuText(assets.font, u8"Объект — НЕ СОТРУДНИК. Он заблудился.", nx + 24, ny + 196, 19, RAYWHITE);
+        RuText(assets.font, u8"Рюкзак — реальность. Вертолёт — симптом.", nx + 24, ny + 232, 17, YELLOW);
+        RuText(assets.font, u8"[E] закрыть", nx + 230, ny + 292, 13, GRAY);
+    }
+
 };
