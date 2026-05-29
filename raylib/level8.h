@@ -13,7 +13,8 @@ struct Level8 {
     Vector2 backpackPos;   // рюкзак — слева, хорошая концовка
     Vector2 heliPos;       // вертолёт — справа, плохая концовка
     float notePosX;
-    bool noteActive = false;
+    bool noteNear = false;
+    bool noteOpen = false;
     bool choiceMade = false;
     float fadeAlpha = 0.0f;
     int hoveredChoice = -1; // -1 = ничего, 0 = рюкзак, 1 = вертолёт
@@ -21,21 +22,35 @@ struct Level8 {
     void Init(int screenW, int screenH) {
         completed = false;
         badEnding = false;
-        noteActive = false;
+        noteNear = false;
+        noteOpen = false;
         choiceMade = false;
         fadeAlpha = 0.0f;
         hoveredChoice = -1;
 
-        backpackPos = { screenW * 0.18f, screenH * 0.55f };
-        heliPos    = { screenW * 0.68f, screenH * 0.55f };
+        backpackPos = { screenW * 0.20f, screenH * 0.66f };
+        heliPos    = { screenW * 0.66f, screenH * 0.66f };
 
-        notePosX = screenW * 0.5f;
+        notePosX = screenW * 0.50f;
     }
 
     void Update(Player& player) {
-        // записка по центру
-        noteActive = player.is_in_area(notePosX);
+        noteNear = player.is_in_area(notePosX);
         hoveredChoice = -1;
+
+        if (noteOpen) {
+            if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_BACKSPACE)) {
+                noteOpen = false;
+                player.can_move = true;
+            }
+            return;
+        }
+
+        if (!choiceMade && noteNear && IsKeyPressed(KEY_E)) {
+            noteOpen = true;
+            player.can_move = false;
+            return;
+        }
 
         if (!choiceMade) {
             // подошёл к рюкзаку — хорошая концовка
@@ -96,13 +111,20 @@ struct Level8 {
         DrawCircle(scrW * 0.78f, scrH * 0.13f, 45, Fade({ 15, 20, 40, 255 }, 0.85f));
         DrawGlow({ scrW * 0.78f, scrH * 0.13f }, 80.0f, { 220, 230, 255, 100 }, { 220, 230, 255, 0 }, 8);
 
-        // --- парапет (край крыши) ---
-        DrawRectangle(0, scrH * 0.50f, scrW, scrH * 0.06f, { 35, 35, 45, 255 });
-        DrawRectangle(0, scrH * 0.50f, scrW, 4, GRAY);
-        DrawGlow({ scrW * 0.20f, scrH * 0.50f }, 50.0f, { 255, 60, 60, 120 }, { 255, 60, 60, 0 }, 6);
+        // --- крыша: высокий парапет и бетонная площадка под уменьшенного игрока ---
+        float roofY = scrH * 0.78f;
+        DrawRectangle(0, (int)(roofY - 92), scrW, 56, Color{ 35, 35, 45, 255 });
+        DrawRectangle(0, (int)(roofY - 92), scrW, 4, GRAY);
+        DrawRectangle(0, (int)(roofY - 36), scrW, 8, Color{ 55, 55, 65, 255 });
+        for (int i = 0; i < 10; i++) {
+            DrawRectangle(i * (scrW / 10), (int)(roofY - 90), 3, 55, Color{ 28, 28, 36, 255 });
+        }
+        DrawGlow({ scrW * 0.20f, roofY - 90.0f }, 50.0f, { 255, 60, 60, 120 }, { 255, 60, 60, 0 }, 6);
 
-        // --- здание ниже парапета (текстура пола) ---
-        float floorY = scrH * 0.56f;
+        // --- бетон крыши ---
+        float floorY = scrH * 0.82f;
+        DrawRectangle(0, (int)(roofY - 28), scrW, (int)(floorY - roofY + 28), Color{ 42, 42, 50, 255 });
+        DrawRectangle(0, (int)(floorY - 2), scrW, 5, Color{ 70, 70, 82, 255 });
         if (assets.tex_floor.width > 0) {
             int tileCount = scrW / assets.tex_floor.width + 2;
             for (int i = 0; i < tileCount; i++) {
@@ -117,13 +139,13 @@ struct Level8 {
 
         // --- выбор, пока не выбран ---
         if (!choiceMade) {
-            RuText(assets.font, u8"Выберите свой путь:", scrW / 2 - 100, scrH * 0.42f, 20, RAYWHITE);
+            RuText(assets.font, u8"Выберите свой путь:", scrW / 2 - 100, scrH * 0.56f, 20, RAYWHITE);
 
             // рюкзак (слева — хорошая концовка)
             {
                 float cx = backpackPos.x;
                 float cy = backpackPos.y;
-                float cw = 200, ch = 130;
+                float cw = 160, ch = 105;
 
                 Color bg = (hoveredChoice == 0)
                     ? Fade(GREEN, 0.25f) : Fade(DARKGREEN, 0.18f);
@@ -131,14 +153,14 @@ struct Level8 {
                 DrawRectangleLines(cx, cy, cw, ch,
                     (hoveredChoice == 0) ? YELLOW : GRAY);
 
-                DrawGlow({ cx + cw * 0.5f, cy + ch * 0.5f }, 60.0f, { 80, 255, 120, 80 }, { 80, 255, 120, 0 }, 6);
+                DrawGlow({ cx + cw * 0.5f, cy + ch * 0.5f }, 42.0f, { 80, 255, 120, 80 }, { 80, 255, 120, 0 }, 6);
 
-                RuText(assets.font, u8"РЮКЗАК", cx + 45, cy + 12, 20,
+                RuText(assets.font, u8"РЮКЗАК", cx + 34, cy + 10, 18,
                     (hoveredChoice == 0) ? YELLOW : LIGHTGRAY);
                 // простой ASCII-рюкзак
-                RuText(assets.font, u8"[|||||]", cx + 55, cy + 42, 16, BROWN);
-                RuText(assets.font, u8"[|||||]", cx + 55, cy + 60, 16, BROWN);
-                RuText(assets.font, u8"[E] ПРИНЯТЬ РЕАЛЬНОСТЬ", cx + 10, cy + 90, 14,
+                RuText(assets.font, u8"[|||||]", cx + 43, cy + 36, 14, BROWN);
+                RuText(assets.font, u8"[|||||]", cx + 43, cy + 52, 14, BROWN);
+                RuText(assets.font, u8"[E] ПРИНЯТЬ", cx + 36, cy + 78, 13,
                     (hoveredChoice == 0) ? YELLOW : GRAY);
             }
 
@@ -146,7 +168,7 @@ struct Level8 {
             {
                 float cx = heliPos.x;
                 float cy = heliPos.y;
-                float cw = 200, ch = 130;
+                float cw = 160, ch = 105;
 
                 Color bg = (hoveredChoice == 1)
                     ? Fade(SKYBLUE, 0.35f) : Fade(DARKBLUE, 0.25f);
@@ -154,40 +176,40 @@ struct Level8 {
                 DrawRectangleLines(cx, cy, cw, ch,
                     (hoveredChoice == 1) ? YELLOW : GRAY);
 
-                DrawGlow({ cx + cw * 0.5f, cy + ch * 0.5f }, 60.0f, { 100, 180, 255, 80 }, { 100, 180, 255, 0 }, 6);
+                DrawGlow({ cx + cw * 0.5f, cy + ch * 0.5f }, 42.0f, { 100, 180, 255, 80 }, { 100, 180, 255, 0 }, 6);
 
-                RuText(assets.font, u8"ВЕРТОЛЁТ", cx + 35, cy + 12, 20,
+                RuText(assets.font, u8"ВЕРТОЛЁТ", cx + 24, cy + 10, 18,
                     (hoveredChoice == 1) ? YELLOW : LIGHTGRAY);
                 // простой ASCII-вертолёт
-                RuText(assets.font, u8"  /\\", cx + 60, cy + 38, 16, RAYWHITE);
-                RuText(assets.font, u8" /  \\", cx + 55, cy + 54, 16, RAYWHITE);
-                RuText(assets.font, u8"|====|", cx + 50, cy + 70, 16, RAYWHITE);
-                RuText(assets.font, u8"[E] УЛЕТЕТЬ", cx + 45, cy + 90, 14,
+                RuText(assets.font, u8"  /\\", cx + 48, cy + 34, 14, RAYWHITE);
+                RuText(assets.font, u8" /  \\", cx + 43, cy + 49, 14, RAYWHITE);
+                RuText(assets.font, u8"|====|", cx + 39, cy + 64, 14, RAYWHITE);
+                RuText(assets.font, u8"[E] УЛЕТЕТЬ", cx + 34, cy + 78, 13,
                     (hoveredChoice == 1) ? YELLOW : GRAY);
             }
         }
 
-        // --- записка на полу ---
-        DrawTexture(assets.tex_note, (int)notePosX, (int)(scrH * 0.70f), WHITE);
+        // --- записка на бетоне ---
+        DrawTextureEx(assets.tex_note, { notePosX, scrH * 0.76f }, 0.0f, 0.45f, WHITE);
+        if (noteNear && !choiceMade && !noteOpen) {
+            RuText(assets.font, u8"[E] прочитать", (int)(notePosX - 8), (int)(scrH * 0.84f), 12, YELLOW);
+        }
 
         // --- текст записки ---
-        if (noteActive && !choiceMade) {
-            int nx = scrW / 2 - 420;
-            int ny = scrH / 2 - 280;
-            DrawRectangle(nx, ny, 840, 560, Fade(BLACK, 0.94f));
-            DrawRectangleLines(nx, ny, 840, 560, GOLD);
+        if (noteOpen && !choiceMade) {
+            int nx = scrW / 2 - 280;
+            int ny = scrH / 2 - 170;
+            DrawRectangle(nx, ny, 560, 340, Fade(BLACK, 0.94f));
+            DrawRectangleLines(nx, ny, 560, 340, GOLD);
 
-            RuText(assets.font, u8"--- ЗАКЛЮЧИТЕЛЬНЫЙ ОТЧЁТ ---", nx + 30, ny + 25, 26, GOLD);
-            RuText(assets.font, u8"Объект №12. Вырвался из изолятора в 03:17.", nx + 30, ny + 70, 22, RAYWHITE);
-            RuText(assets.font, u8"Приметы: лабораторный халат из ячейки B-7.", nx + 50, ny + 105, 22, RAYWHITE);
-            RuText(assets.font, u8"Доза Z-облучения: 4,7 Гр — КРИТИЧЕСКАЯ.", nx + 30, ny + 150, 22, RED);
-            RuText(assets.font, u8"Прогноз: полный распад самоидентификации", nx + 50, ny + 185, 22, RED);
-            RuText(assets.font, u8"в течение 72 часов. Объект присвоит личность", nx + 50, ny + 215, 22, RED);
-            RuText(assets.font, u8"владельца любой вещи, которую наденет.", nx + 50, ny + 245, 22, RED);
-            RuText(assets.font, u8"Объект — НЕ СОТРУДНИК КОМПЛЕКСА.", nx + 30, ny + 300, 26, RAYWHITE);
-            RuText(assets.font, u8"Посторонний. Проник самовольно. Заблудился.", nx + 50, ny + 335, 26, RAYWHITE);
-            RuText(assets.font, u8"При обнаружении: НЕ ВСТУПАТЬ В КОНТАКТ.", nx + 30, ny + 390, 22, RAYWHITE);
-            RuText(assets.font, u8"Опасен. Не осознаёт своих действий.", nx + 50, ny + 420, 22, RAYWHITE);
+            RuText(assets.font, u8"--- ЗАКЛЮЧИТЕЛЬНЫЙ ОТЧЁТ ---", nx + 24, ny + 20, 22, GOLD);
+            RuText(assets.font, u8"Объект №12 вышел на крышу в 03:17.", nx + 24, ny + 62, 17, RAYWHITE);
+            RuText(assets.font, u8"Халат из ячейки B-7 закрепил ложную", nx + 24, ny + 91, 17, RAYWHITE);
+            RuText(assets.font, u8"личность: «сотрудник комплекса».", nx + 24, ny + 119, 17, RAYWHITE);
+            RuText(assets.font, u8"Доза Z-облучения: критическая.", nx + 24, ny + 156, 17, RED);
+            RuText(assets.font, u8"Объект — НЕ СОТРУДНИК. Он заблудился.", nx + 24, ny + 196, 19, RAYWHITE);
+            RuText(assets.font, u8"Рюкзак — реальность. Вертолёт — симптом.", nx + 24, ny + 232, 17, YELLOW);
+            RuText(assets.font, u8"[E] закрыть", nx + 230, ny + 292, 13, GRAY);
         }
 
         // --- плохая концовка: белый fade ---
