@@ -226,16 +226,16 @@ struct Level2 {
         }
 
         // Записка
-        DrawTexture(assets.tex_note, (int)notePosX, (int)(scrH * 0.70f), WHITE);
+        DrawTextureEx(assets.tex_note, { notePosX, scrH * 0.715f }, 0.0f, 0.15f, WHITE);
         if (noteActive) {
-            int nx = scrW/2-400, ny = scrH/2-200;
-            DrawRectangle(nx, ny, 800, 400, Fade(BLACK, 0.92f));
-            DrawRectangleLines(nx, ny, 800, 400, GOLD);
-            RuText(assets.font, u8"--- ЗАПИСКА ---", nx+30, ny+25, 26, GOLD);
-            RuText(assets.font, u8"Центральный кластер завис.", nx+30, ny+75, 22, RAYWHITE);
-            RuText(assets.font, u8"Я ж сисадмин... в смысле, физик.", nx+30, ny+110, 22, RAYWHITE);
-            RuText(assets.font, u8"Ладно, починю. Тут делов на пять минут.", nx+30, ny+145, 22, RAYWHITE);
-            RuText(assets.font, u8"Хотя откуда я вообще это знаю?..", nx+30, ny+190, 22, Color{200,180,80,255});
+            int nx = scrW/2-420, ny = scrH/2-220;
+            DrawRectangle(nx, ny, 840, 440, Fade(BLACK, 0.92f));
+            DrawRectangleLines(nx, ny, 840, 440, GOLD);
+            RuText(assets.font, u8"--- ЗАПИСКА ---", nx+40, ny+35, 28, GOLD);
+            RuText(assets.font, u8"Центральный кластер завис.", nx+40, ny+95, 24, RAYWHITE);
+            RuText(assets.font, u8"Я ж сисадмин... в смысле, физик.", nx+40, ny+135, 24, RAYWHITE);
+            RuText(assets.font, u8"Ладно, починю. Тут делов на пять минут.", nx+40, ny+175, 24, RAYWHITE);
+            RuText(assets.font, u8"Хотя откуда я вообще это знаю?..", nx+40, ny+225, 24, Color{200,180,80,255});
         }
 
         player.DrawSprite(assets);

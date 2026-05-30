@@ -19,7 +19,10 @@ struct Player {
     float runFrameDuration = 0.07f;
     float idleFrameDuration = 0.5f;
     short lastDirection = 1;
-    float spriteScale = 1.0f;   // масштаб спрайта (1.0 = оригинал, 1.5 = ×1.5)
+    float spriteScale = 0.2f;    // масштаб спрайта (1.0 = оригинал, 1.5 = крупнее)
+    float shadowOffsetY = 4.0f; // смещение тени ВНИЗ от pos.y (меньше = тень ближе к ногам, выше)
+    float shadowRadiusX = 20.0f; // ширина тени (полуширина эллипса, меньше = уже)
+    float shadowRadiusY = 8.0f;  // высота тени (полувысота эллипса)
 
     void Update();
     bool is_in_area(float x) const;

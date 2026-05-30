@@ -23,12 +23,14 @@ struct Assets {
     Texture2D tex_elevator_opened;
     Texture2D tex_note;
     Texture2D tex_terminal;
+    Texture2D tex_vignette;        // виньетка — затемнение по краям экрана
     Texture2D player_stand[2];
     Texture2D player_walk[4];
     Texture2D player_run[4];
 
     // --- Звуки (SFX, короткие) ---
     Sound sfx_elevator;
+    Sound sfx_elevator_up;       // звук движения лифта вверх
 
     // --- Музыка (фоновая, зацикленная) ---
     Music music_menu;
@@ -62,6 +64,7 @@ inline void LoadAssets(Assets& a) {
     a.tex_elevator_opened = LoadTexture("textures/elevator-opened.png");
     a.tex_note            = LoadTexture("textures/note.png");
     a.tex_terminal        = LoadTexture("textures/terminal.png");
+    a.tex_vignette        = LoadTexture("textures/vinnete.png");
 
     // --- Спрайты игрока: стоит (2 кадра) ---
     a.player_stand[0] = LoadTexture("textures/player/idle/sprite_0.png");
@@ -80,8 +83,10 @@ inline void LoadAssets(Assets& a) {
     a.player_run[3] = LoadTexture("textures/player/run/sprite_3.png");
 
     // --- Звуки (нужен InitAudioDevice() в main!) ---
-    a.sfx_elevator = LoadSound("sounds/звук при езде на лифте.mp3");
-    SetSoundVolume(a.sfx_elevator, a.sfxVolume);
+    a.sfx_elevator    = LoadSound("sounds/звук при езде на лифте.mp3");
+    a.sfx_elevator_up = LoadSound("sounds/soundwhenelevmovesup.mp3");
+    SetSoundVolume(a.sfx_elevator,    a.sfxVolume);
+    SetSoundVolume(a.sfx_elevator_up, a.sfxVolume);
 
     // --- Музыка (нужен InitAudioDevice() в main!) ---
     a.music_menu       = LoadMusicStream("sounds/menu.ogg");
@@ -113,6 +118,7 @@ inline void UnloadAssets(Assets& a) {
     UnloadTexture(a.tex_elevator_opened);
     UnloadTexture(a.tex_note);
     UnloadTexture(a.tex_terminal);
+    UnloadTexture(a.tex_vignette);
 
     UnloadTexture(a.player_stand[0]);
     UnloadTexture(a.player_stand[1]);
@@ -128,6 +134,7 @@ inline void UnloadAssets(Assets& a) {
     UnloadTexture(a.player_run[3]);
 
     UnloadSound(a.sfx_elevator);
+    UnloadSound(a.sfx_elevator_up);
 
     UnloadMusicStream(a.music_menu);
     UnloadMusicStream(a.music_beginning);

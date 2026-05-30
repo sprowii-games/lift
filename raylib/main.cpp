@@ -4,12 +4,18 @@
 #include "menu.h"
 #include "assets.h"
 #include "level1.h"
-#include "level2.h"
 #include "level4.h"
 #include "level6.h"
 #include "level8.h"
 
 enum TransitState { TRANSIT_NONE, TRANSIT_FADE_OUT, TRANSIT_SHAKE, TRANSIT_FADE_IN };
+
+static void ClampPlayerToLevelBounds(Player& player, int screenW) {
+    const float leftWall = 45.0f;
+    const float rightWall = screenW - 45.0f;
+    if (player.pos.x < leftWall) player.pos.x = leftWall;
+    if (player.pos.x > rightWall) player.pos.x = rightWall;
+}
 
 // ============================================================
 //  LIFT — психологический хоррор в лифте
@@ -31,6 +37,7 @@ enum TransitState { TRANSIT_NONE, TRANSIT_FADE_OUT, TRANSIT_SHAKE, TRANSIT_FADE_
 int main() {
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
     InitWindow(1920, 1080, "LIFT");
+    SetExitKey(0);               // отключаем авто-закрытие по ESC — обрабатываем вручную
     SetTargetFPS(60);
 
     InitAudioDevice();
@@ -51,13 +58,12 @@ int main() {
     float camera_speed = 5.0f;
 
     Level1 level1;
-    Level2 level2;
     Level4 level4;
     Level6 level6;
     Level8 level8;
 
 
-    const int levelCount = 5;
+    const int levelCount = 4;
     int currentLevel = 0;
     bool gameCompleted = false;
     bool gameBadEnd = false;
@@ -70,21 +76,20 @@ int main() {
     int currentMusicTrack = -1;
 
     level1.Init(width, height);
-    level2.Init(width, height);
     level4.Init(width, height);
     level6.Init(width, height);
     level8.Init(width, height);
-    player.pos = { width * 0.166f, height * 0.75f };
+    player.pos = { width * 0.166f, height * 0.825f };
 
     while (!WindowShouldClose()) {
         int desiredTrack = -1;
-        if (menu.state == MENU) desiredTrack = 0;
+        if (menu.state == MENU || menu.state == CREDITS) desiredTrack = 0;
         else if (gameCompleted) desiredTrack = -1;
         else if (transitState == TRANSIT_NONE) {
             if (currentLevel == 0) desiredTrack = 1;
-            else if (currentLevel <= 2) desiredTrack = 2;
-            else if (currentLevel == 3) desiredTrack = 3;
-            else if (currentLevel == 4) desiredTrack = 4;
+            else if (currentLevel == 1) desiredTrack = 2;
+            else if (currentLevel == 2) desiredTrack = 3;
+            else if (currentLevel == 3) desiredTrack = 4;
         }
 
         if (desiredTrack != currentMusicTrack) {
@@ -115,6 +120,7 @@ int main() {
 
         if (menu.state == MENU) {
             menu.Update(assets.font);
+            if (IsKeyPressed(KEY_ESCAPE)) menu.state = EXIT;
 
             BeginDrawing();
             menu.Draw(assets.font);
@@ -126,25 +132,25 @@ int main() {
                     if (IsKeyPressed(KEY_R)) {
                         switch (currentLevel) {
                             case 0: level1.Init(width, height); break;
-                            case 1: level2.Init(width, height); break;
-                            case 2: level4.Init(width, height); break;
-                            case 3: level6.Init(width, height); break;
-                            case 4: level8.Init(width, height); break;
+                            case 1: level4.Init(width, height); break;
+                            case 2: level6.Init(width, height); break;
+                            case 3: level8.Init(width, height); break;
                         }
-                        player.pos = { width * 0.166f, height * 0.75f };
+                        player.pos = { width * 0.166f, height * 0.82f };
+                        player.can_move = true;
                     }
 
                     player.Update();
+                    ClampPlayerToLevelBounds(player, width);
                     camera.Update(player, camera_speed);
 
                     bool levelCompleted = false;
                     bool levelBadEnd = false;
                     switch (currentLevel) {
                         case 0: level1.Update(player, camera); levelCompleted = level1.completed; levelBadEnd = level1.badEnding; break;
-                        case 1: level2.Update(player); levelCompleted = level2.completed; levelBadEnd = level2.badEnding; break;
-                        case 2: level4.Update(player); levelCompleted = level4.completed; levelBadEnd = level4.badEnding; break;
-                        case 3: level6.Update(player); levelCompleted = level6.completed; levelBadEnd = level6.badEnding; break;
-                        case 4: level8.Update(player); levelCompleted = level8.completed; levelBadEnd = level8.badEnding; break;
+                        case 1: level4.Update(player); levelCompleted = level4.completed; levelBadEnd = level4.badEnding; break;
+                        case 2: level6.Update(player); levelCompleted = level6.completed; levelBadEnd = level6.badEnding; break;
+                        case 3: level8.Update(player); levelCompleted = level8.completed; levelBadEnd = level8.badEnding; break;
                     }
 
                     if (levelCompleted) {
@@ -172,7 +178,7 @@ int main() {
                     }
                     else if (transitState == TRANSIT_SHAKE) {
                         if (!elevatorSoundPlayed) {
-                            PlaySound(assets.sfx_elevator);
+                            PlaySound(assets.sfx_elevator_up);
                             elevatorSoundPlayed = true;
                             camera.AddShake(2.0f);
                             camera.Update(player, camera_speed);
@@ -182,19 +188,25 @@ int main() {
                                 transitState = TRANSIT_NONE;
                             } else {
                                 switch (currentLevel) {
-                                    case 1: level2.Init(width, height); break;
-                                    case 2: level4.Init(width, height); break;
-                                    case 3: level6.Init(width, height); break;
-                                    case 4: level8.Init(width, height); break;
+                                    case 1: level4.Init(width, height); break;
+                                    case 2: level6.Init(width, height); break;
+                                    case 3: level8.Init(width, height); break;
                                 }
-                                player.pos = { width * 0.166f, height * 0.75f };
+                                player.pos = { width * 0.166f, height * 0.82f };
+                                ClampPlayerToLevelBounds(player, width);
                             }
                         }
-                        camera.Update(player, camera_speed);
 
-                        if (transitTimer > 2.5f && !gameCompleted) {
-                            transitState = TRANSIT_FADE_IN;
-                            transitTimer = 0.0f;
+                        if (!gameCompleted) {
+                            // тряска всё время пока звук играет
+                            camera.AddShake(0.5f);
+                            camera.Update(player, camera_speed);
+
+                            // переход когда звук кончится (минимум 0.3с на всякий случай)
+                            if (transitTimer > 0.3f && !IsSoundPlaying(assets.sfx_elevator_up)) {
+                                transitState = TRANSIT_FADE_IN;
+                                transitTimer = 0.0f;
+                            }
                         }
                     }
                     else if (transitState == TRANSIT_FADE_IN) {
@@ -212,15 +224,33 @@ int main() {
                 BeginMode2D(camera.cam);
                 switch (currentLevel) {
                     case 0: level1.DrawWorld(player, assets); break;
-                    case 1: level2.Draw(player, assets); break;
-                    case 2: level4.Draw(player, assets); break;
-                    case 3: level6.Draw(player, assets); break;
-                    case 4: level8.Draw(player, assets); break;
+                    case 1: level4.Draw(player, assets); break;
+                    case 2: level6.Draw(player, assets); break;
+                    case 3: level8.Draw(player, assets); break;
                 }
                 EndMode2D();
 
+                // Виньетка: включается после 1-го этажа, выключается на крыше
+                if (currentLevel >= 1 && currentLevel <= 2) {
+                    bool flip = (player.lastDirection == -1);   // lastDirection — стабильнее, не сбрасывается в 0
+                    Texture2D v = assets.tex_vignette;
+                    if (v.id != 0) {
+                        Rectangle src = { 0.0f, 0.0f, flip ? -(float)v.width : (float)v.width, (float)v.height };
+                        Rectangle dst = { 0.0f, 0.0f, (float)width, (float)height };
+                        DrawTexturePro(v, src, dst, {0.0f, 0.0f}, 0.0f, WHITE);
+                    }
+                }
+
                 if (currentLevel == 0) {
                     level1.DrawTerminalUI(player, assets);
+                }
+
+                if (currentLevel == 1) {
+                    level4.DrawUI(assets);
+                } else if (currentLevel == 2) {
+                    level6.DrawUI(assets);
+                } else if (currentLevel == 3) {
+                    level8.DrawUI(assets);
                 }
 
                 if (transitState != TRANSIT_NONE) {
@@ -259,8 +289,38 @@ int main() {
                     RuText(assets.font, "И этого достаточно.", width / 2 - 120, height / 2 + 55, 22, GRAY);
                 }
                 RuText(assets.font, "ESC — выйти.", width / 2 - 60, height / 2 + 130, 18, DARKGRAY);
+
+                if (IsKeyPressed(KEY_ESCAPE)) break;
+
                 EndDrawing();
             }
+        }
+        else if (menu.state == CREDITS) {
+            if (IsKeyPressed(KEY_ESCAPE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                menu.state = MENU;
+            }
+
+            BeginDrawing();
+            ClearBackground(Color{8, 8, 14, 255});
+
+            int sw = GetScreenWidth();
+            int sh = GetScreenHeight();
+
+            int tw;
+            tw = RuMeasure(assets.font, u8"КРЕДИТЫ", 48);
+            RuText(assets.font, u8"КРЕДИТЫ", (sw - tw) / 2, 150, 48, RAYWHITE);
+
+            tw = RuMeasure(assets.font, u8"Музыка", 32);
+            RuText(assets.font, u8"Музыка", (sw - tw) / 2, 280, 32, GOLD);
+            tw = RuMeasure(assets.font, "chajamakesmusic", 28);
+            RuText(assets.font, "chajamakesmusic", (sw - tw) / 2, 340, 28, RAYWHITE);
+            tw = RuMeasure(assets.font, "crow shade", 28);
+            RuText(assets.font, "crow shade", (sw - tw) / 2, 390, 28, RAYWHITE);
+
+            tw = RuMeasure(assets.font, u8"ESC / клик — назад", 20);
+            RuText(assets.font, u8"ESC / клик — назад", (sw - tw) / 2, sh - 80, 20, Color{100, 100, 110, 255});
+
+            EndDrawing();
         }
         else if (menu.state == EXIT) {
             break;
