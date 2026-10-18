@@ -2,6 +2,8 @@ name: Build & Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   workflow_dispatch:
@@ -46,9 +48,6 @@ jobs:
   web:
     name: Web (Emscripten)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -86,16 +85,8 @@ jobs:
                 echo "::error title=web-build::$(printf '%s' "$line" | tr '\n' ' ' | cut -c1-800)"
               done
 
-          cat report.md
           echo "::notice title=web-log-tail::$(tail -n 3 build.log 2>/dev/null | tr '\n' ' ' | cut -c1-800)"
-
-          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" -q '.[0].number' 2>/dev/null || true)
-          echo "PR=$pr"
-          if [ -n "$pr" ] && [ "$pr" != "null" ]; then
-            jq -Rs '{body: .}' < report.md > payload.json || true
-            gh api "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --input payload.json > /dev/null 2>&1 \
-              && echo "posted comment" || echo "comment failed"
-          fi
+          tail -n 80 build.log 2>/dev/null || true
 
       - name: Package
         run: |
@@ -120,7 +111,7 @@ jobs:
   pages:
     name: GitHub Pages
     needs: web
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     continue-on-error: true
     permissions:
@@ -130,7 +121,20 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Check whether Pages is enabled
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/pages" > /dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=GitHub Pages::Pages пока не включён. Settings -> Pages -> Source: GitHub Actions."
+          fi
+
       - id: deployment
+        if: steps.check.outputs.enabled == 'true'
         uses: actions/deploy-pages@v4
 
   release:
@@ -141,6 +145,8 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -158,5 +164,5 @@ jobs:
             LIFT-windows-x64.zip LIFT-web.zip SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" \
             --title "LIFT $GITHUB_REF_NAME" \
-            --generate-notes \
+            --notes-file .github/release-notes.md \
             --verify-tag

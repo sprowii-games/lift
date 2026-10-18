@@ -19,3 +19,6 @@ dizdok.md dizdoc.md
 /cmake-build-*/
 CMakeCache.txt
 CMakeFiles/
+
+# Local hand-built packages
+/dist-local/

@@ -157,14 +157,24 @@
       });
       if (window.webkitAudioContext) window.webkitAudioContext = window.AudioContext;
 
+      window.__liftAudioMuted = false;
       window.toggleAudio = function () {
-        var anySuspended = contexts.some(function (c) { return c.state !== 'running'; });
+        window.__liftAudioMuted = !window.__liftAudioMuted;
         contexts.forEach(function (c) {
-          if (anySuspended) c.resume(); else c.suspend();
+          if (window.__liftAudioMuted) c.suspend(); else c.resume();
         });
         var btn = document.getElementById('btn-audio');
-        if (btn) btn.textContent = anySuspended ? '🔊 ЗВУК' : '🔇 ЗВУК';
+        if (btn) btn.textContent = window.__liftAudioMuted ? '🔇 ЗВУК' : '🔊 ЗВУК';
       };
+
+      // Browsers start WebAudio in "suspended" state. The first click/keypress
+      // (for example, on the "ИГРАТЬ" button) unlocks the sound automatically.
+      function unlockAudio() {
+        if (window.__liftAudioMuted) return;
+        contexts.forEach(function (c) { if (c.state !== 'running') c.resume(); });
+      }
+      window.addEventListener('pointerdown', unlockAudio, true);
+      window.addEventListener('keydown', unlockAudio, true);
     })();
 
     window.addEventListener('DOMContentLoaded', function () {
