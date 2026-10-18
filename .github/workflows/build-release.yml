@@ -72,7 +72,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -e
           {
             echo "### Web build failed"
             echo '```'
@@ -80,12 +79,22 @@ jobs:
             tail -c 20000 configure.log 2>/dev/null || true
             echo '```'
           } > report.md
+
+          # Show compiler errors as check-run annotations (visible without raw logs)
+          grep -E "error:|fatal error|undefined reference|FAILED:|CMake Error" build.log configure.log 2>/dev/null \
+            | tail -n 20 | while IFS= read -r line; do
+                echo "::error title=web-build::$(printf '%s' "$line" | tr '\n' ' ' | cut -c1-800)"
+              done
+
+          cat report.md
+          echo "::notice title=web-log-tail::$(tail -n 3 build.log 2>/dev/null | tr '\n' ' ' | cut -c1-800)"
+
           pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" -q '.[0].number' 2>/dev/null || true)
+          echo "PR=$pr"
           if [ -n "$pr" ] && [ "$pr" != "null" ]; then
-            jq -n --arg body "$(cat report.md)" '{body:$body}' > payload.json
-            gh api "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --input payload.json > /dev/null
-          else
-            cat report.md
+            jq -Rs '{body: .}' < report.md > payload.json || true
+            gh api "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --input payload.json > /dev/null 2>&1 \
+              && echo "posted comment" || echo "comment failed"
           fi
 
       - name: Package
