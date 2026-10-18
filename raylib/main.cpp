@@ -10,6 +10,20 @@
 
 enum TransitState { TRANSIT_NONE, TRANSIT_FADE_OUT, TRANSIT_SHAKE, TRANSIT_FADE_IN };
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+
+// Отладочные геттеры для веб-оболочки (web/shell.html).
+// Нужны только чтобы показать в HUD реальные размеры экрана и позицию мыши,
+// которые видит сама игра, и сверить их с размером canvas в браузере.
+extern "C" {
+EMSCRIPTEN_KEEPALIVE int lift_screen_width(void)  { return GetScreenWidth(); }
+EMSCRIPTEN_KEEPALIVE int lift_screen_height(void) { return GetScreenHeight(); }
+EMSCRIPTEN_KEEPALIVE int lift_mouse_x(void)       { return GetMouseX(); }
+EMSCRIPTEN_KEEPALIVE int lift_mouse_y(void)       { return GetMouseY(); }
+}
+#endif
+
 static void ClampPlayerToLevelBounds(Player& player, int screenW) {
     const float leftWall = 45.0f;
     const float rightWall = screenW - 45.0f;
@@ -95,6 +109,20 @@ int main() {
     player.pos = { width * 0.166f, height * 0.825f };
 
     while (!WindowShouldClose()) {
+#if defined(__EMSCRIPTEN__)
+        // Emscripten отдаёт координаты мыши в CSS-пикселях, а игра живёт в 1920x1080.
+        // Оболочка держит layout-размер canvas ровно 1920x1080, но если браузер его
+        // всё-таки изменит (зум, встройка) — досчитываем масштаб здесь.
+        {
+            int cssW = EM_ASM_INT({ return document.getElementById('canvas').clientWidth; });
+            int cssH = EM_ASM_INT({ return document.getElementById('canvas').clientHeight; });
+            if (cssW > 0 && cssH > 0) {
+                SetMouseScale((float)GetScreenWidth() / (float)cssW,
+                              (float)GetScreenHeight() / (float)cssH);
+            }
+        }
+#endif
+
         int desiredTrack = -1;
         if (menu.state == MENU || menu.state == CREDITS) desiredTrack = 0;
         else if (gameCompleted) desiredTrack = -1;

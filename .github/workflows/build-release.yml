@@ -95,6 +95,7 @@ jobs:
           mkdir -p dist/web
           cp build-web/index.html build-web/index.js build-web/index.wasm build-web/index.data dist/web/
           cp README.md LICENSE dist/web/
+          cp web/start-web.bat web/start-web.sh dist/web/
           cd dist/web
           zip -9 -r ../LIFT-web.zip .
 

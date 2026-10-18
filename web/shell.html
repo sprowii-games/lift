@@ -18,42 +18,64 @@
     body {
       font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
       color: #d8d8e0;
+      -webkit-user-select: none;
+      user-select: none;
     }
+
     #stage {
       position: fixed;
       inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at 50% 40%, #101018 0%, #050507 70%);
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 40%, #0d0d13 0%, #050507 75%);
     }
+
+    /* КРИТИЧНО ДЛЯ МЫШИ:
+       canvas ВСЕГДА имеет layout-размер 1920x1080 CSS-пикселей и такой же
+       буфер. Масштабируем его только CSS-трансформом.
+       Emscripten GLFW считает координаты мыши как
+           (clientX - rect.left) * clientWidth / rect.width
+       при layout-размере 1920 это ровно (clientX - rect.left) / k,
+       то есть координаты попадают в игровое пространство 1920x1080.
+       Если растягивать canvas через width/height, курсор уезжает — это и был баг. */
+    #frame {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #000;
+      transform-origin: top left;
+      will-change: transform;
+    }
+
     canvas.emscripten {
       display: block;
+      width: 1920px;
+      height: 1080px;
       border: 0;
       padding: 0;
       margin: 0;
       background: #000;
       outline: none;
-      width: min(100vw, 177.7778vh);
-      height: min(100vh, 56.25vw);
-      box-shadow: 0 0 80px rgba(0, 0, 0, .9);
     }
     canvas.emscripten:focus { outline: none; }
 
-    #loader {
+    /* Накладки живут вне #frame — они не масштабируются вместе с игрой */
+    .overlay {
       position: fixed;
       inset: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 18px;
+      gap: 16px;
       background: #050507;
-      transition: opacity .45s ease;
       z-index: 20;
     }
-    #loader.hidden { opacity: 0; pointer-events: none; }
-    #loader h1 {
+    .overlay.hidden { display: none; }
+
+    #loader h1, #start h1 {
       margin: 0;
       font-size: clamp(42px, 8vw, 92px);
       font-weight: 700;
@@ -61,12 +83,14 @@
       text-indent: .42em;
       color: #f2f2f5;
     }
-    #loader p {
+    #loader p, #start p {
       margin: 0;
-      font-size: 14px;
+      font-size: 13px;
       letter-spacing: .18em;
       text-transform: uppercase;
       color: #7a7a88;
+      text-align: center;
+      line-height: 1.7;
     }
     #progress {
       width: min(320px, 70vw);
@@ -81,164 +105,501 @@
       transition: width .2s linear;
     }
 
+    #start { background: radial-gradient(circle at 50% 40%, #0d0d14 0%, #050507 70%); }
+    #btn-play {
+      margin-top: 26px;
+      font: inherit;
+      font-size: 17px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #f2f2f5;
+      background: #191920;
+      border: 1px solid #4a4a58;
+      padding: 16px 46px;
+      cursor: pointer;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    #btn-play:hover { background: #26263a; border-color: #9a9aae; }
+    #btn-play:active { background: #33334a; }
+
     #controls {
-      position: fixed;
-      top: 14px;
-      right: 14px;
+      position: absolute;
+      top: 10px;
+      right: 12px;
       display: flex;
-      gap: 8px;
-      z-index: 30;
+      gap: 6px;
+      z-index: 12;
     }
     #controls button {
       font: inherit;
-      font-size: 12px;
-      letter-spacing: .12em;
-      color: #c9c9d2;
-      background: rgba(18, 18, 24, .78);
-      border: 1px solid #2e2e3a;
-      padding: 8px 12px;
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: #b9b9c4;
+      background: rgba(14, 14, 20, .72);
+      border: 1px solid #26262f;
+      padding: 6px 9px;
       cursor: pointer;
       backdrop-filter: blur(4px);
+      opacity: .55;
+      transition: opacity .15s ease, border-color .15s ease;
     }
-    #controls button:hover { border-color: #6a6a7a; color: #fff; }
-    #controls button:active { background: rgba(40, 40, 52, .9); }
+    #controls button:hover { opacity: 1; border-color: #6a6a7a; color: #fff; }
 
     #hint {
-      position: fixed;
+      position: absolute;
       left: 50%;
-      bottom: 10px;
+      bottom: 6px;
       transform: translateX(-50%);
-      font-size: 11px;
-      letter-spacing: .16em;
-      color: #55555f;
+      font-size: 10px;
+      letter-spacing: .14em;
+      color: #4c4c56;
       white-space: nowrap;
-      z-index: 15;
+      z-index: 12;
+      pointer-events: none;
     }
     @media (max-height: 520px) { #hint { display: none; } }
+
+    /* Отладочный HUD: F1 или ?debug=1 в адресе */
+    #hud {
+      position: absolute;
+      left: 12px;
+      top: 10px;
+      z-index: 13;
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #9ee6a8;
+      background: rgba(4, 10, 4, .82);
+      border: 1px solid #1d3a1d;
+      padding: 8px 10px;
+      white-space: pre;
+      pointer-events: none;
+    }
+    #hud.hidden { display: none; }
+
+    /* Диагностика: любая ошибка видна прямо на странице, а не в чёрном экране */
+    #diag {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(6, 6, 9, .94);
+    }
+    #diag.hidden { display: none; }
+    #diag .box {
+      max-width: 760px;
+      width: 100%;
+      border: 1px solid #5a2a2a;
+      background: #120c0c;
+      padding: 26px 28px;
+      box-sizing: border-box;
+    }
+    #diag h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing: .04em;
+      color: #ffb4a8;
+    }
+    #diag p {
+      margin: 0 0 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #d3c9c9;
+    }
+    #diag code, #diag pre {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 12.5px;
+    }
+    #diag code {
+      display: block;
+      background: #1c1414;
+      border: 1px solid #3a2626;
+      padding: 10px 12px;
+      margin: 0 0 12px;
+      color: #ffe4a8;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    #diag pre {
+      max-height: 200px;
+      overflow: auto;
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      background: #0b0b0f;
+      border: 1px solid #24242e;
+      color: #a9a9b8;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    #diag .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+    #diag button {
+      font: inherit;
+      font-size: 13px;
+      letter-spacing: .08em;
+      color: #e6e6ee;
+      background: #1c1c24;
+      border: 1px solid #3a3a48;
+      padding: 9px 16px;
+      cursor: pointer;
+    }
+    #diag button:hover { border-color: #7a7a8a; }
   </style>
 </head>
 <body>
   <div id="stage">
-    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    <div id="frame">
+      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    </div>
+
+    <div id="controls">
+      <button id="btn-audio" type="button" title="Включить или выключить звук">🔇 ЗВУК</button>
+      <button id="btn-fullscreen" type="button" title="На весь экран">⛶</button>
+    </div>
+
+    <div id="hint">A / D — идти · SHIFT — бежать · E — действие · R — рестарт</div>
+
+    <div id="hud" class="hidden"></div>
   </div>
 
-  <div id="loader">
+  <div id="loader" class="overlay">
     <h1>ЛИФТ</h1>
     <p id="status">Загрузка…</p>
     <div id="progress"><div id="progress-bar"></div></div>
   </div>
 
-  <div id="controls">
-    <button id="btn-audio" type="button" title="Включить или выключить звук">🔇 ЗВУК</button>
-    <button id="btn-fullscreen" type="button" title="На весь экран">⛶ ЭКРАН</button>
+  <div id="start" class="overlay hidden">
+    <h1>ЛИФТ</h1>
+    <p>психологический хоррор в лифте</p>
+    <button id="btn-play" type="button">Играть</button>
+    <p style="margin-top:18px; font-size:11px; color:#4e4e58;">A / D — идти · SHIFT — бежать · E — действие</p>
   </div>
 
-  <div id="hint">A / D — идти · SHIFT — бежать · E — действие · R — рестарт</div>
+  <div id="diag" class="hidden">
+    <div class="box">
+      <h2 id="diag-title">Что-то пошло не так</h2>
+      <p id="diag-text"></p>
+      <div id="diag-code-wrap"></div>
+      <pre id="diag-log"></pre>
+      <div class="buttons">
+        <button id="diag-reload" type="button">Перезагрузить</button>
+        <button id="diag-hide" type="button">Скрыть</button>
+        <button id="diag-hud" type="button">Показать HUD</button>
+      </div>
+    </div>
+  </div>
 
   <script>
-    // --- Unlock / mute WebAudio (browsers block audio until a user gesture) ---
-    (function () {
-      var contexts = [];
-      var AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
+    // ------------------------------------------------------------------
+    //  LIFT web shell
+    //  Задачи:
+    //   1) игра всегда 1920x1080 внутри, canvas вписан в окно трансформом;
+    //   2) мышь попадает точно (см. комментарий у #frame);
+    //   3) любая ошибка видна на странице, а не в чёрном экране;
+    //   4) HUD (F1) показывает реальные числа для диагностики.
+    // ------------------------------------------------------------------
+    window.LIFT = (function () {
+      var GAME_WIDTH = 1920;
+      var GAME_HEIGHT = 1080;
 
-      function track(ctx) {
-        contexts.push(ctx);
-        var btn = document.getElementById('btn-audio');
-        if (btn) btn.textContent = ctx.state === 'running' ? '🔊 ЗВУК' : '🔇 ЗВУК';
-      }
-
-      window.AudioContext = new Proxy(AudioCtx, {
-        construct: function (target, args) {
-          var ctx = new target(...args);
-          track(ctx);
-          return ctx;
-        }
-      });
-      if (window.webkitAudioContext) window.webkitAudioContext = window.AudioContext;
-
-      window.__liftAudioMuted = false;
-      window.toggleAudio = function () {
-        window.__liftAudioMuted = !window.__liftAudioMuted;
-        contexts.forEach(function (c) {
-          if (window.__liftAudioMuted) c.suspend(); else c.resume();
-        });
-        var btn = document.getElementById('btn-audio');
-        if (btn) btn.textContent = window.__liftAudioMuted ? '🔇 ЗВУК' : '🔊 ЗВУК';
+      var el = {
+        stage: document.getElementById('stage'),
+        frame: document.getElementById('frame'),
+        loader: document.getElementById('loader'),
+        status: document.getElementById('status'),
+        bar: document.getElementById('progress-bar'),
+        start: document.getElementById('start'),
+        play: document.getElementById('btn-play'),
+        diag: document.getElementById('diag'),
+        diagTitle: document.getElementById('diag-title'),
+        diagText: document.getElementById('diag-text'),
+        diagCode: document.getElementById('diag-code-wrap'),
+        diagLog: document.getElementById('diag-log'),
+        audio: document.getElementById('btn-audio'),
+        fullscreen: document.getElementById('btn-fullscreen'),
+        hud: document.getElementById('hud'),
+        canvas: document.getElementById('canvas')
       };
 
-      // Browsers start WebAudio in "suspended" state. The first click/keypress
-      // (for example, on the "ИГРАТЬ" button) unlocks the sound automatically.
-      function unlockAudio() {
-        if (window.__liftAudioMuted) return;
-        contexts.forEach(function (c) { if (c.state !== 'running') c.resume(); });
+      var logLines = [];
+      var ready = false;
+      var started = false;
+      var failed = false;
+      var scale = 1;
+      var hudVisible = /(\?|&)debug=1/.test(location.search);
+
+      function renderLog() {
+        if (!el.diagLog) return;
+        el.diagLog.textContent = logLines.slice(-40).join('\n');
       }
+
+      function log(line) {
+        if (line === undefined || line === null) return;
+        logLines.push(String(line));
+        if (logLines.length > 200) logLines.shift();
+        renderLog();
+      }
+
+      function fail(title, text, code) {
+        failed = true;
+        if (el.loader) el.loader.classList.add('hidden');
+        if (el.start) el.start.classList.add('hidden');
+        if (!el.diag) return;
+
+        el.diagTitle.textContent = title;
+        el.diagText.innerHTML = text || '';
+        el.diagCode.innerHTML = '';
+        if (code) {
+          var pre = document.createElement('code');
+          pre.textContent = code;
+          el.diagCode.appendChild(pre);
+        }
+        el.diag.classList.remove('hidden');
+        renderLog();
+        log('[LIFT] ' + title);
+      }
+
+      function isFileProtocol() {
+        return location.protocol === 'file:';
+      }
+
+      function showFileWarning() {
+        fail(
+          'Игра открыта как файл, а не как сайт',
+          'Браузер не отдаёт <code style="display:inline;padding:2px 4px;">.wasm</code> и <code style="display:inline;padding:2px 4px;">.data</code> по протоколу <b>file://</b> — поэтому экран остаётся чёрным. ' +
+          'Нужен любой локальный сервер в папке с игрой (там, где лежат index.html, index.js, index.wasm, index.data):',
+          'python -m http.server 8080\n\n# затем открой http://localhost:8080'
+        );
+      }
+
+      // --- вписываем игру в окно, сохраняя 16:9 и layout-размер 1920x1080 ---
+      function fitToWindow() {
+        var vw = window.innerWidth || document.documentElement.clientWidth;
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+
+        scale = Math.min(vw / GAME_WIDTH, vh / GAME_HEIGHT);
+
+        var dx = Math.floor((vw - GAME_WIDTH * scale) / 2);
+        var dy = Math.floor((vh - GAME_HEIGHT * scale) / 2);
+
+        if (el.frame) {
+          el.frame.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + scale + ')';
+        }
+        return scale;
+      }
+
+      function enforceBuffer() {
+        var c = el.canvas;
+        if (!c) return;
+        if (c.width !== GAME_WIDTH || c.height !== GAME_HEIGHT) {
+          c.width = GAME_WIDTH;
+          c.height = GAME_HEIGHT;
+          log('canvas buffer -> ' + GAME_WIDTH + 'x' + GAME_HEIGHT);
+        }
+      }
+
+      // --- HUD для сверки координат --------------------------------------
+      function gameNumber(fn) {
+        try {
+          if (window.Module && typeof Module.ccall === 'function') {
+            return String(Module.ccall(fn, 'number', [], []));
+          }
+        } catch (e) { /* функция ещё не слинкована */ }
+        return 'n/a';
+      }
+
+      function updateHud() {
+        if (!el.hud) return;
+        if (!hudVisible) { el.hud.classList.add('hidden'); return; }
+        el.hud.classList.remove('hidden');
+
+        var c = el.canvas;
+        var r = c ? c.getBoundingClientRect() : { width: 0, height: 0, left: 0, top: 0 };
+        el.hud.textContent =
+          'buffer  ' + (c ? c.width + 'x' + c.height : 'n/a') + '\n' +
+          'layout  ' + (c ? c.clientWidth + 'x' + c.clientHeight : 'n/a') + '\n' +
+          'vis box ' + Math.round(r.width) + 'x' + Math.round(r.height) +
+          '  @' + Math.round(r.left) + ',' + Math.round(r.top) + '\n' +
+          'window  ' + window.innerWidth + 'x' + window.innerHeight +
+          '  dpr ' + (window.devicePixelRatio || 1) + '\n' +
+          'game    ' + gameNumber('lift_screen_width') + 'x' + gameNumber('lift_screen_height') + '\n' +
+          'mouse   ' + gameNumber('lift_mouse_x') + ', ' + gameNumber('lift_mouse_y') + '\n' +
+          'F1 — скрыть';
+      }
+
+      function toggleHud(force) {
+        hudVisible = (typeof force === 'boolean') ? force : !hudVisible;
+        updateHud();
+      }
+
+      function hideLoader() {
+        if (el.loader) el.loader.classList.add('hidden');
+      }
+
+      function showStart() {
+        if (started || failed) return;
+        ready = true;
+        hideLoader();
+        if (el.start) el.start.classList.remove('hidden');
+      }
+
+      function begin() {
+        if (started) return;
+        started = true;
+        if (el.start) el.start.classList.add('hidden');
+        if (el.canvas && el.canvas.focus) el.canvas.focus();
+        unlockAudio();
+      }
+
+      // --- WebAudio: браузеры стартуют контекст в suspended ----------------
+      var contexts = [];
+      var muted = false;
+      var AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+      if (AudioCtx) {
+        window.AudioContext = new Proxy(AudioCtx, {
+          construct: function (target, args) {
+            var ctx = new target(...args);
+            contexts.push(ctx);
+            if (el.audio) el.audio.textContent = '🔇 ЗВУК';
+            return ctx;
+          }
+        });
+        if (window.webkitAudioContext) window.webkitAudioContext = window.AudioContext;
+      }
+
+      function unlockAudio() {
+        if (muted) return;
+        contexts.forEach(function (c) { if (c.state !== 'running') c.resume(); });
+        if (el.audio) el.audio.textContent = '🔊 ЗВУК';
+      }
+
+      function toggleAudio() {
+        muted = !muted;
+        contexts.forEach(function (c) {
+          if (muted) c.suspend(); else c.resume();
+        });
+        if (el.audio) el.audio.textContent = muted ? '🔇 ЗВУК' : '🔊 ЗВУК';
+      }
+
+      // --- события ---------------------------------------------------------
+      fitToWindow();
+
+      window.addEventListener('resize', function () { fitToWindow(); enforceBuffer(); updateHud(); });
+      document.addEventListener('fullscreenchange', function () { fitToWindow(); enforceBuffer(); updateHud(); });
       window.addEventListener('pointerdown', unlockAudio, true);
-      window.addEventListener('keydown', unlockAudio, true);
-    })();
+      window.addEventListener('keydown', function (e) {
+        unlockAudio();
+        if (e.key === 'F1') { e.preventDefault(); toggleHud(); }
+      }, true);
+      window.addEventListener('mousemove', function () { if (hudVisible) updateHud(); }, true);
 
-    window.addEventListener('DOMContentLoaded', function () {
-      var audioBtn = document.getElementById('btn-audio');
-      if (audioBtn) audioBtn.addEventListener('click', function () { window.toggleAudio(); });
-
-      var fsBtn = document.getElementById('btn-fullscreen');
-      if (fsBtn) fsBtn.addEventListener('click', function () {
-        var stage = document.getElementById('stage');
+      if (el.play) el.play.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        begin();
+      });
+      if (el.audio) el.audio.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleAudio();
+      });
+      if (el.fullscreen) el.fullscreen.addEventListener('click', function (e) {
+        e.stopPropagation();
         if (!document.fullscreenElement) {
-          if (stage.requestFullscreen) stage.requestFullscreen();
+          if (el.stage.requestFullscreen) el.stage.requestFullscreen();
         } else if (document.exitFullscreen) {
           document.exitFullscreen();
         }
       });
+      if (el.canvas) el.canvas.addEventListener('pointerdown', function () {
+        if (!started) begin();
+        el.canvas.focus();
+      });
 
-      var canvas = document.getElementById('canvas');
-      if (canvas) canvas.addEventListener('pointerdown', function () { canvas.focus(); });
-    });
+      var reloadBtn = document.getElementById('diag-reload');
+      if (reloadBtn) reloadBtn.addEventListener('click', function () { location.reload(); });
+      var hideBtn = document.getElementById('diag-hide');
+      if (hideBtn) hideBtn.addEventListener('click', function () { el.diag.classList.add('hidden'); });
+      var hudBtn = document.getElementById('diag-hud');
+      if (hudBtn) hudBtn.addEventListener('click', function () { toggleHud(true); el.diag.classList.add('hidden'); });
+
+      window.addEventListener('error', function (ev) {
+        if (failed) return;
+        log('window.error: ' + (ev.message || ev.type));
+        fail('Ошибка в браузере',
+             'Игра не смогла загрузиться. Ниже — текст ошибки и последние строки лога.',
+             ev.message ? String(ev.message) : null);
+      });
+
+      window.addEventListener('unhandledrejection', function (ev) {
+        if (failed) return;
+        var reason = ev.reason && (ev.reason.message || ev.reason);
+        log('unhandledrejection: ' + reason);
+        if (isFileProtocol()) return;
+        fail('Ошибка загрузки файлов игры',
+             'Браузер не смог получить <code style="display:inline;padding:2px 4px;">index.wasm</code> или <code style="display:inline;padding:2px 4px;">index.data</code>. ' +
+             'Проверьте, что все четыре файла лежат рядом с index.html и что страница открыта через http://, а не file://.',
+             reason ? String(reason) : null);
+      });
+
+      if (isFileProtocol()) showFileWarning();
+
+      // Страховка: буфер canvas должен оставаться 1920x1080
+      setInterval(function () { enforceBuffer(); }, 1000);
+
+      setTimeout(function () {
+        if (!ready && !started && !failed) {
+          fail('Игра не запустилась',
+               'Загрузка не завершилась за 25 секунд. Ниже — лог, который обычно объясняет причину.',
+               null);
+        }
+      }, 25000);
+
+      return {
+        log: log,
+        hideLoader: hideLoader,
+        showStart: function () { showStart(); enforceBuffer(); updateHud(); },
+        begin: begin,
+        fail: fail,
+        fit: fitToWindow,
+        enforceBuffer: enforceBuffer,
+        updateHud: updateHud,
+        getScale: function () { return scale; },
+        setStatus: function (text) {
+          if (isFileProtocol()) return;
+          if (!text) { hideLoader(); showStart(); return; }
+          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+          if (m) {
+            var pct = Math.max(0, Math.min(100, parseInt(m[2], 10) * 100 / parseInt(m[4], 10)));
+            if (el.bar) el.bar.style.width = pct.toFixed(1) + '%';
+            if (el.status) el.status.textContent = 'Загрузка ' + Math.round(pct) + '%';
+          } else if (el.status) {
+            el.status.textContent = text;
+          }
+        }
+      };
+    })();
   </script>
 
   <script>
-    var statusEl = null;
-    var barEl = null;
-    var loaderEl = null;
-
     var Module = {
       canvas: document.getElementById('canvas'),
-      print: function (text) { console.log(text); },
-      printErr: function (text) { console.error(text); },
-      setStatus: function (text) {
-        if (!statusEl) statusEl = document.getElementById('status');
-        if (!barEl) barEl = document.getElementById('progress-bar');
-        if (!loaderEl) loaderEl = document.getElementById('loader');
-
-        if (!text) {
-          if (loaderEl) loaderEl.classList.add('hidden');
-          if (statusEl) statusEl.textContent = 'Готово';
-          if (barEl) barEl.style.width = '100%';
-          return;
-        }
-
-        var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
-        if (m) {
-          var pct = Math.max(0, Math.min(100, parseInt(m[2], 10) * 100 / parseInt(m[4], 10)));
-          if (barEl) barEl.style.width = pct.toFixed(1) + '%';
-          if (statusEl) statusEl.textContent = 'Загрузка ' + Math.round(pct) + '%';
-        } else if (statusEl) {
-          statusEl.textContent = text;
-        }
-      },
+      print: function (text) { console.log(text); if (window.LIFT) window.LIFT.log(text); },
+      printErr: function (text) { console.error(text); if (window.LIFT) window.LIFT.log('ERR: ' + text); },
+      setStatus: function (text) { if (window.LIFT) window.LIFT.setStatus(text); },
       monitorRunDependencies: function (left) {
-        if (left === 0 && Module.setStatus) Module.setStatus('');
+        if (left === 0 && window.LIFT) window.LIFT.setStatus('');
       },
       onRuntimeInitialized: function () {
-        if (Module.setStatus) Module.setStatus('');
+        if (window.LIFT) window.LIFT.showStart();
       }
     };
 
-    window.addEventListener('error', function (e) {
-      var status = document.getElementById('status');
-      if (status) status.textContent = 'Ошибка загрузки — открой консоль браузера';
-      console.error(e);
-    });
+    window.onerror = function (msg) {
+      if (window.LIFT) window.LIFT.log('onerror: ' + msg);
+    };
   </script>
 
   {{{ SCRIPT }}}
