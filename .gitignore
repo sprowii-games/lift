@@ -12,3 +12,13 @@
 *.user
 .vs
 dizdok.md dizdoc.md
+# CMake / CI builds
+/build/
+/build-web/
+/dist/
+/cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+
+# Local hand-built packages
+/dist-local/

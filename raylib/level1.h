@@ -344,7 +344,7 @@ struct Level1 {
                 Color col = sel ? YELLOW : Color{ 0, 160, 80, 255 };
                 const char* prefix = sel ? u8"  \u25ba " : u8"    ";
                 char label[8];
-                sprintf_s(label, sizeof(label), "%c) ", 'A' + i);
+                snprintf(label, sizeof(label), "%c) ", 'A' + i);
 
                 int ox = tx;
                 RuText(assets.font, prefix, ox, optY + i * lh, 22, col);

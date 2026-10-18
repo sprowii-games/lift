@@ -35,10 +35,23 @@ static void ClampPlayerToLevelBounds(Player& player, int screenW) {
 // ============================================================
 
 int main() {
+#if defined(__EMSCRIPTEN__)
+    // В браузере нет настоящего фуллскрина при старте — просим его только по кнопке в оболочке.
+    // Внутреннее разрешение остаётся 1920x1080, а canvas масштабируется под окно.
+    SetConfigFlags(FLAG_VSYNC_HINT);
+#else
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
+#endif
     InitWindow(1920, 1080, "LIFT");
     SetExitKey(0);               // отключаем авто-закрытие по ESC — обрабатываем вручную
     SetTargetFPS(60);
+
+    // Если игру запустили не из её папки (ярлык, другой каталог) — переходим к ассетам.
+    // В вебе ассеты уже лежат в корне виртуальной ФС, поэтому ничего не меняем.
+    if (!DirectoryExists("textures") || !FileExists("handjet.ttf")) {
+        const char* appDir = GetApplicationDirectory();
+        if (appDir != nullptr && appDir[0] != '\0') ChangeDirectory(appDir);
+    }
 
     InitAudioDevice();
 
