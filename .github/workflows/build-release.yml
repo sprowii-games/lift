@@ -160,9 +160,15 @@ jobs:
           cd dist
           ls -lah
           sha256sum *.zip > SHA256SUMS.txt
-          gh release create "$GITHUB_REF_NAME" \
-            LIFT-windows-x64.zip LIFT-web.zip SHA256SUMS.txt \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "LIFT $GITHUB_REF_NAME" \
-            --notes-file .github/release-notes.md \
-            --verify-tag
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" \
+              LIFT-windows-x64.zip LIFT-web.zip SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              LIFT-windows-x64.zip LIFT-web.zip SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "LIFT $GITHUB_REF_NAME" \
+              --notes-file "$GITHUB_WORKSPACE/.github/release-notes.md" \
+              --verify-tag
+          fi
