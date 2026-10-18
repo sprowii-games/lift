@@ -46,6 +46,9 @@ jobs:
   web:
     name: Web (Emscripten)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -53,13 +56,37 @@ jobs:
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: 3.1.64
-          actions-cache: true
 
       - name: Configure
-        run: emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release -DPLATFORM=Web
+        run: |
+          set -o pipefail
+          emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release -DPLATFORM=Web 2>&1 | tee configure.log
 
       - name: Build
-        run: cmake --build build-web --parallel
+        run: |
+          set -o pipefail
+          cmake --build build-web --parallel 2>&1 | tee build.log
+
+      - name: Report build failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          {
+            echo "### Web build failed"
+            echo '```'
+            tail -c 60000 build.log 2>/dev/null || true
+            tail -c 20000 configure.log 2>/dev/null || true
+            echo '```'
+          } > report.md
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" -q '.[0].number' 2>/dev/null || true)
+          if [ -n "$pr" ] && [ "$pr" != "null" ]; then
+            jq -n --arg body "$(cat report.md)" '{body:$body}' > payload.json
+            gh api "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --input payload.json > /dev/null
+          else
+            cat report.md
+          fi
 
       - name: Package
         run: |
