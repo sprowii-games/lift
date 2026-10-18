@@ -26,7 +26,8 @@ struct Level1 {
     State state;
     float stateTimer;
 
-    float terminalScale = 1.5f;   // размер терминала в мире (меньше = меньше терминал)
+    float terminalScale = 0.22f;  // размер спрайта терминала в мире (0.22 ≈ высота лифтовой двери)
+    float terminalPromptY = 0.0f; // Y подсказки [E] — считается при отрисовке
     float escHoldTimer = 0.0f;    // таймер удержания ESC для выхода из терминала
 
     // Интро — построчное появление текста АУРА
@@ -55,7 +56,7 @@ struct Level1 {
         currentQuestion = 0;
         selectedOption = 0;
         failMessageIndex = 0;
-        terminalScale = 0.2f;
+        terminalScale = 0.22f;
         escHoldTimer = 0.0f;
 
         doorPos = { screenW * 0.88f, screenH * 0.84f };
@@ -217,6 +218,37 @@ struct Level1 {
         }
     }
 
+    // Терминал стоит на полу ровно по центру зоны взаимодействия.
+    // Если спрайта нет — рисуем простой корпус, чтобы терминал не пропадал.
+    void DrawTerminalSprite(Assets& assets, float floorY) {
+        const float bottom = floorY + 2.0f;
+
+        if (assets.tex_terminal.width > 0) {
+            float w = assets.tex_terminal.width * terminalScale;
+            float h = assets.tex_terminal.height * terminalScale;
+            terminalPromptY = floorY - h - 30.0f;
+
+            DrawTextureEx(assets.tex_terminal,
+                          { terminalCenterX - w * 0.5f, bottom - h },
+                          0.0f, terminalScale, WHITE);
+
+            // слабое зелёное свечение экрана, чтобы терминал «жил»
+            float glowPulse = 0.5f + 0.5f * sinf((float)GetTime() * 2.0f);
+            DrawCircleGradient((int)terminalCenterX, (int)(bottom - h * 0.72f),
+                               40.0f, Fade(Color{ 60, 255, 120, 255 }, 0.05f + 0.03f * glowPulse),
+                               BLANK);
+        }
+        else {
+            float w = 74.0f, h = 92.0f;
+            terminalPromptY = floorY - h - 30.0f;
+
+            DrawRectangle((int)(terminalCenterX - w * 0.5f), (int)(bottom - h), (int)w, (int)h, Color{ 42, 50, 38, 255 });
+            DrawRectangleLines((int)(terminalCenterX - w * 0.5f), (int)(bottom - h), (int)w, (int)h, Color{ 78, 98, 72, 255 });
+            DrawRectangle((int)(terminalCenterX - w * 0.5f + 7), (int)(bottom - h + 8),
+                          (int)(w - 14), (int)(h * 0.38f), Color{ 8, 38, 12, 255 });
+        }
+    }
+
     // === Рисование мира (внутри BeginMode2D/EndMode2D) ===
     void DrawWorld(Player& player, Assets& assets) {
         int scrW = GetScreenWidth();
@@ -242,12 +274,14 @@ struct Level1 {
 
         // Терминал как объект мира (только в WAITING)
         if (state == WAITING) {
-            DrawTextureEx(assets.tex_terminal, {terminalPos.x, terminalPos.y}, 0.0f, terminalScale, WHITE);
+            DrawTerminalSprite(assets, floorY);
 
             if (player.is_in_area(terminalCenterX)) {
                 float pulse = 0.5f + 0.5f * sinf((float)GetTime() * 5.0f);
                 unsigned char a = (unsigned char)(100 + 155 * pulse);
-                RuText(assets.font, u8"[E]", (int)terminalPos.x + 15, (int)terminalPos.y - 30, 20, Color{ 255, 255, 100, a });
+                int promptW = RuMeasure(assets.font, u8"[E]", 20);
+                RuText(assets.font, u8"[E]", (int)terminalCenterX - promptW / 2,
+                       (int)terminalPromptY, 20, Color{ 255, 255, 100, a });
             }
         }
 
