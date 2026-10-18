@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>LIFT — психологический хоррор в лифте</title>
+  <meta name="description" content="LIFT — короткий психологический хоррор про побег из лаборатории. Четыре этажа, головоломки и лифт.">
+  <meta name="theme-color" content="#050507">
+  <style>
+    :root { color-scheme: dark; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050507;
+    }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: #d8d8e0;
+    }
+    #stage {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 40%, #101018 0%, #050507 70%);
+    }
+    canvas.emscripten {
+      display: block;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: #000;
+      outline: none;
+      width: min(100vw, 177.7778vh);
+      height: min(100vh, 56.25vw);
+      box-shadow: 0 0 80px rgba(0, 0, 0, .9);
+    }
+    canvas.emscripten:focus { outline: none; }
+
+    #loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: #050507;
+      transition: opacity .45s ease;
+      z-index: 20;
+    }
+    #loader.hidden { opacity: 0; pointer-events: none; }
+    #loader h1 {
+      margin: 0;
+      font-size: clamp(42px, 8vw, 92px);
+      font-weight: 700;
+      letter-spacing: .42em;
+      text-indent: .42em;
+      color: #f2f2f5;
+    }
+    #loader p {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: #7a7a88;
+    }
+    #progress {
+      width: min(320px, 70vw);
+      height: 2px;
+      background: #1c1c24;
+      overflow: hidden;
+    }
+    #progress > div {
+      width: 0%;
+      height: 100%;
+      background: #b9b9c6;
+      transition: width .2s linear;
+    }
+
+    #controls {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 8px;
+      z-index: 30;
+    }
+    #controls button {
+      font: inherit;
+      font-size: 12px;
+      letter-spacing: .12em;
+      color: #c9c9d2;
+      background: rgba(18, 18, 24, .78);
+      border: 1px solid #2e2e3a;
+      padding: 8px 12px;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+    #controls button:hover { border-color: #6a6a7a; color: #fff; }
+    #controls button:active { background: rgba(40, 40, 52, .9); }
+
+    #hint {
+      position: fixed;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      font-size: 11px;
+      letter-spacing: .16em;
+      color: #55555f;
+      white-space: nowrap;
+      z-index: 15;
+    }
+    @media (max-height: 520px) { #hint { display: none; } }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+  </div>
+
+  <div id="loader">
+    <h1>ЛИФТ</h1>
+    <p id="status">Загрузка…</p>
+    <div id="progress"><div id="progress-bar"></div></div>
+  </div>
+
+  <div id="controls">
+    <button id="btn-audio" type="button" title="Включить или выключить звук">🔇 ЗВУК</button>
+    <button id="btn-fullscreen" type="button" title="На весь экран">⛶ ЭКРАН</button>
+  </div>
+
+  <div id="hint">A / D — идти · SHIFT — бежать · E — действие · R — рестарт</div>
+
+  <script>
+    // --- Unlock / mute WebAudio (browsers block audio until a user gesture) ---
+    (function () {
+      var contexts = [];
+      var AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      function track(ctx) {
+        contexts.push(ctx);
+        var btn = document.getElementById('btn-audio');
+        if (btn) btn.textContent = ctx.state === 'running' ? '🔊 ЗВУК' : '🔇 ЗВУК';
+      }
+
+      window.AudioContext = new Proxy(AudioCtx, {
+        construct: function (target, args) {
+          var ctx = new target(...args);
+          track(ctx);
+          return ctx;
+        }
+      });
+      if (window.webkitAudioContext) window.webkitAudioContext = window.AudioContext;
+
+      window.toggleAudio = function () {
+        var anySuspended = contexts.some(function (c) { return c.state !== 'running'; });
+        contexts.forEach(function (c) {
+          if (anySuspended) c.resume(); else c.suspend();
+        });
+        var btn = document.getElementById('btn-audio');
+        if (btn) btn.textContent = anySuspended ? '🔊 ЗВУК' : '🔇 ЗВУК';
+      };
+    })();
+
+    window.addEventListener('DOMContentLoaded', function () {
+      var audioBtn = document.getElementById('btn-audio');
+      if (audioBtn) audioBtn.addEventListener('click', function () { window.toggleAudio(); });
+
+      var fsBtn = document.getElementById('btn-fullscreen');
+      if (fsBtn) fsBtn.addEventListener('click', function () {
+        var stage = document.getElementById('stage');
+        if (!document.fullscreenElement) {
+          if (stage.requestFullscreen) stage.requestFullscreen();
+        } else if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      });
+
+      var canvas = document.getElementById('canvas');
+      if (canvas) canvas.addEventListener('pointerdown', function () { canvas.focus(); });
+    });
+  </script>
+
+  <script>
+    var statusEl = null;
+    var barEl = null;
+    var loaderEl = null;
+
+    var Module = {
+      canvas: document.getElementById('canvas'),
+      print: function (text) { console.log(text); },
+      printErr: function (text) { console.error(text); },
+      setStatus: function (text) {
+        if (!statusEl) statusEl = document.getElementById('status');
+        if (!barEl) barEl = document.getElementById('progress-bar');
+        if (!loaderEl) loaderEl = document.getElementById('loader');
+
+        if (!text) {
+          if (loaderEl) loaderEl.classList.add('hidden');
+          if (statusEl) statusEl.textContent = 'Готово';
+          if (barEl) barEl.style.width = '100%';
+          return;
+        }
+
+        var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+        if (m) {
+          var pct = Math.max(0, Math.min(100, parseInt(m[2], 10) * 100 / parseInt(m[4], 10)));
+          if (barEl) barEl.style.width = pct.toFixed(1) + '%';
+          if (statusEl) statusEl.textContent = 'Загрузка ' + Math.round(pct) + '%';
+        } else if (statusEl) {
+          statusEl.textContent = text;
+        }
+      },
+      monitorRunDependencies: function (left) {
+        if (left === 0 && Module.setStatus) Module.setStatus('');
+      },
+      onRuntimeInitialized: function () {
+        if (Module.setStatus) Module.setStatus('');
+      }
+    };
+
+    window.addEventListener('error', function (e) {
+      var status = document.getElementById('status');
+      if (status) status.textContent = 'Ошибка загрузки — открой консоль браузера';
+      console.error(e);
+    });
+  </script>
+
+  {{{ SCRIPT }}}
+</body>
+</html>
